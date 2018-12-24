@@ -92,7 +92,8 @@ for i in range(MAX_EPSODES):
         next_state = np.reshape([next_frame], (1, 84, 84, 1))
         next_state = np.append(next_state, initial_state[:, :, :, :3], axis=3)
         
-        score += reward
+        if (reward > 0):
+            score += 1
         
         if start_life > info['lives']:
             reward = -1
@@ -100,10 +101,9 @@ for i in range(MAX_EPSODES):
             start_life = info['lives']
 
         reward = np.clip(reward, -1.0, 1.0)
-        print(reward)
         end_eps = dead or is_done
         
-
+        agent.remember(initial_state, action, reward, next_state, end_eps)
         if (agent.global_step >= N_RANDOM_STEPS and (not agent.replay_is_running)):
             replay_is_running = True
             LOSS += agent.replay(batch_size)
@@ -112,6 +112,10 @@ for i in range(MAX_EPSODES):
 
         if not is_done:
             initial_state = next_state
+
+        if random.random() <= 0.005:
+            print("SCORE ON EPISODE %d IS %d. EPSILON IS %f. STEPS IS %d. GSTEPS IS %d." % (
+                i, score, agent.epsilon, agent.step, agent.global_step))
 
         if RENDER:
             env.render()
