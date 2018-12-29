@@ -124,20 +124,20 @@ class DQNAgent:
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
 
         # Assuming that the input frames are still encoded from 0 to 255. Transforming to [0, 1].
-        normalized = layers.Lambda(lambda x: x / 255.0, name='normalization')(frames_input)
+        normalized = layers.Lambda(lambda x: x/6.0, name='normalization')(frames_input)
 
-        # "The first hidden layer convolves 16 8×8 filters with stride 4 with the input image and applies a rectifier nonlinearity."
+        # "The first hidden layer convolves 8 1×1 filters with stride 4 with the input image and applies a rectifier nonlinearity."
         conv_1 = layers.convolutional.Conv2D(
-            16, (8, 8), strides=(4, 4), activation='relu'
+            8, (2, 2), strides=(1, 1), activation='relu'
         )(normalized)
-        # "The second hidden layer convolves 32 4×4 filters with stride 2, again followed by a rectifier nonlinearity."
+        # "The second hidden layer convolves 4 2×2 filters with stride 1, again followed by a rectifier nonlinearity."
         conv_2 = layers.convolutional.Conv2D(
-            32, (4, 4), strides=(2, 2), activation='relu'
+            4, (2, 2), strides=(1, 1), activation='relu'
         )(conv_1)
         # Flattening the second convolutional layer.
         conv_flattened = layers.core.Flatten()(conv_2)
         # "The final hidden layer is fully-connected and consists of 256 rectifier units."
-        hidden = layers.Dense(256, activation='relu')(conv_flattened)
+        hidden = layers.Dense(100, activation='relu')(conv_flattened)
         # "The output layer is a fully-connected linear layer with a single output for each valid action."
         output = layers.Dense(ACTION_SIZE)(hidden)
         # Finally, we multiply the output by the mask!

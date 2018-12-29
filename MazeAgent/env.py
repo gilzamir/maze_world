@@ -14,19 +14,43 @@ PROPRIOCEPTION = 0
 SENSORS = 1
 
 class Environment:
-    def __init__(self, idle=None):
+    def __init__(self, idle=None, useRaycasting = True):
         self.net = ne.NetCon()
         self.net.open()
         self.idle = idle
-        self.score = 15
+        self.initial_energy = 15
+        self.useRaycasting = useRaycasting
+        self.hresolution = 10
+        self.vresolution = 10
+        self.maxValue = 6
 
     def render(self):
         pass
 
     def agent_perception(self):
-        p, frame = self.net.percept()
+        p, fr = self.net.percept()
         p = str(p, 'utf-8')
-        #print(p)   
+        frame = fr
+        if self.useRaycasting:
+            try:
+                m = np.zeros((self.vresolution, self.hresolution))
+                f = str(fr, 'utf-8')
+                lines = f.strip().split(";")
+            
+                i = 0
+                for line in lines:
+                    values = line.strip().split(",")
+                    j = 0
+                    for value in values:
+                        if len(value) > 0:
+                            m[i][j] = int(value)
+                            j += 1
+                    i += 1
+                frame = m
+            except Exception:
+                frame = np.zeros((self.vresolution, self.hresolution))
+
+        #print(p)
         perception = [float(t) for t in p.strip().split(';')]
         return (perception,  frame)
 
@@ -43,7 +67,8 @@ class Environment:
         return self.prepare_data(info, frame)
 
     def prepare_data(self, info, frame):
-        frame = Image.open(io.BytesIO(frame))
+        if not self.useRaycasting:
+            frame = Image.open(io.BytesIO(frame))
         #print(info)
         lives = info[0]
         energy = info[1]
@@ -52,8 +77,8 @@ class Environment:
         isPickUpNear = True if info[-2] == 0 else False
         nearPickUpValue = info[-1]
 
-        reward = energy - self.score
-        self.score = energy
+        reward = energy - self.initial_energy
+        self.initial_energy = energy
 
         infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue}
 

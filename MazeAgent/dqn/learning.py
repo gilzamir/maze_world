@@ -10,10 +10,10 @@ from skimage.transform import resize
 from skimage.transform import rotate
 import random
 
-agent = Agent((84, 84), 6)
+agent = Agent( (10, 10), 6)
 agent._build_model()
 agent.front2back()
-agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/1000000)
+agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/100000)
 
 
 def pre_processing(observe):
@@ -21,23 +21,8 @@ def pre_processing(observe):
     processed_observe = np.uint8(
         resize(rgb2gray(observe), (84, 84), mode='constant') * 255)
     return processed_observe
-
-#TRANSFORM_OBS_PROB = 0.00
-'''
-def pre_processing(observe):
-    observe = np.array(observe)
-    if (np.random.rand() <= TRANSFORM_OBS_PROB):
-        if (np.random.rand()<=0.5):
-            observe = rotate(observe, -90)
-        else:
-            observe = rotate(observe, 90)
-    processed_observe = np.uint8(
-        resize(rgb2gray(observe), (84, 84), mode='constant') * 255)
-    return processed_observe
-'''
 
 LOSS = 0.0
-
 
 def back2front(agent, loss):
     global LOSS
@@ -49,7 +34,7 @@ def back2front(agent, loss):
 
 RENDER = False
 REFRESH_MODEL_NUM = 10000
-N_RANDOM_STEPS = 50000
+N_RANDOM_STEPS = 5000
 MAX_EPSODES = 100000000
 NO_OP_STEPS = 30
 
@@ -74,10 +59,12 @@ for i in range(MAX_EPSODES):
     for _ in range(NO_OP_STEPS):
         frame = env.step(1)[0]
 
-    frame = pre_processing(frame)
+    if not env.useRaycasting:
+        frame = pre_processing(frame)
+
     stack_frame = tuple([frame]*agent.skip_frames)
     initial_state = np.stack(stack_frame, axis=2)
-    initial_state = np.reshape([initial_state], (1, 84, 84, agent.skip_frames))
+    initial_state = np.reshape([initial_state], (1, env.vresolution, env.hresolution, agent.skip_frames))
 
     dead = False
     while not is_done:
@@ -88,8 +75,10 @@ for i in range(MAX_EPSODES):
             action = agent.act(initial_state, True)
         frame, reward, is_done, info = env.step(agent.contextual_actions[action])
 
-        next_frame = pre_processing(frame)
-        next_state = np.reshape([next_frame], (1, 84, 84, 1))
+        next_frame = frame
+        if not env.useRaycasting:
+            next_frame = pre_processing(next_frame)
+        next_state = np.reshape([next_frame], (1, env.vresolution, env.hresolution, 1))
         next_state = np.append(next_state, initial_state[:, :, :, :3], axis=3)
         
         if (reward > 0):

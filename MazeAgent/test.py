@@ -16,4 +16,5 @@ while not is_done:
     if action == -1:
         env.reset()
     else:
-        frame, lifes, energy, score, isPickUpNear, nearPickUpValue, is_done = env.step(action)
+        frame, reward, _, _ = env.step(action)
+        print(frame)
