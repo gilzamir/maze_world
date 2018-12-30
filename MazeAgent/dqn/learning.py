@@ -13,7 +13,7 @@ import random
 agent = Agent( (10, 10), 6)
 agent._build_model()
 agent.front2back()
-agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/100000)
+agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/500000)
 
 
 def pre_processing(observe):
@@ -80,16 +80,13 @@ for i in range(MAX_EPSODES):
             next_frame = pre_processing(next_frame)
         next_state = np.reshape([next_frame], (1, env.vresolution, env.hresolution, 1))
         next_state = np.append(next_state, initial_state[:, :, :, :3], axis=3)
-        
-        if (reward > 0):
-            score += 1
-        
+        score += reward
         if start_life > info['lives']:
             reward = -1
             dead = True
             start_life = info['lives']
-
         reward = np.clip(reward, -1.0, 1.0)
+    
         end_eps = dead or is_done
         
         agent.remember(initial_state, action, reward, next_state, end_eps)
@@ -97,24 +94,24 @@ for i in range(MAX_EPSODES):
             replay_is_running = True
             LOSS += agent.replay(batch_size)
             if agent.global_step % REFRESH_MODEL_NUM == 0:
-                agent.back2front()
+                agent.front2back()
 
         if not is_done:
             initial_state = next_state
 
         if random.random() <= 0.005:
-            print("SCORE ON EPISODE %d IS %d. EPSILON IS %f. STEPS IS %d. GSTEPS IS %d." % (
-                i, score, agent.epsilon, agent.step, agent.global_step))
+            print("CURRENT REWARD ON EPISODE %d IS %f. EPSILON IS %f. STEPS IS %d. GSTEPS IS %d. AVG LOSS IS %f" % (
+                i, score, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step))
 
         if RENDER:
             env.render()
-        if (agent.epoch % 1000 == 0):
+        if (agent.epoch % 100 == 0):
             agent.save("model%d" % (agent.epoch))
 
     count_loss = agent.step
     if count_loss == 0:
         count_loss = 1
 
-    print("SCORE ON EPISODE %d IS %d. EPSILON IS %f. STEPS IS %d. GSTEPS IS %d. LOSS IS %f" % (
+    print("FINAL REWARD ON EPISODE %d IS %f. EPSILON IS %f. STEPS IS %d. GSTEPS IS %d. AVG LOSS IS %f" % (
         i, score, agent.epsilon, agent.step, agent.global_step, LOSS/count_loss))
     LOSS = 0.0

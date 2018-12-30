@@ -123,16 +123,16 @@ class DQNAgent:
         frames_input = layers.Input(ATARI_SHAPE, name='frames')
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
 
-        # Assuming that the input frames are still encoded from 0 to 255. Transforming to [0, 1].
+        # Assuming that the input frames are still encoded from 0 to 6. Transforming to [0, 1].
         normalized = layers.Lambda(lambda x: x/6.0, name='normalization')(frames_input)
 
-        # "The first hidden layer convolves 8 1×1 filters with stride 4 with the input image and applies a rectifier nonlinearity."
+        # "The first hidden layer convolves 8 4×4 filters with stride 2 with the input image and applies a rectifier nonlinearity."
         conv_1 = layers.convolutional.Conv2D(
-            8, (2, 2), strides=(1, 1), activation='relu'
+            8, (4, 4), strides=(2, 2), activation='relu'
         )(normalized)
-        # "The second hidden layer convolves 4 2×2 filters with stride 1, again followed by a rectifier nonlinearity."
+        # "The second hidden layer convolves 4 3×3 filters with stride 1, again followed by a rectifier nonlinearity."
         conv_2 = layers.convolutional.Conv2D(
-            4, (2, 2), strides=(1, 1), activation='relu'
+            4, (3, 3), strides=(1, 1), activation='relu'
         )(conv_1)
         # Flattening the second convolutional layer.
         conv_flattened = layers.core.Flatten()(conv_2)
@@ -255,15 +255,14 @@ class DQNAgent:
 
         for i in range(batch_size):
             if dones[i]:
-                targets[i] = -1
-                #targets[i] = rewards[i]
+                targets[i] = rewards[i]
             else:
                 targets[i] = rewards[i] + self.gamma * np.amax(next_Q_values[i])
 
         action_one_hot = get_one_hot(actions, self.action_size)
         target_one_hot = action_one_hot * targets[:, None]
 
-        h = self.back_model.fit(
+        h = self.model.fit(
             [states, action_one_hot], target_one_hot, epochs=1, batch_size=batch_size, verbose=0)
 
         self.replay_is_running = False

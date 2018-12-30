@@ -50,7 +50,6 @@ class Environment:
             except Exception:
                 frame = np.zeros((self.vresolution, self.hresolution))
 
-        #print(p)
         perception = [float(t) for t in p.strip().split(';')]
         return (perception,  frame)
 
@@ -72,13 +71,20 @@ class Environment:
         #print(info)
         lives = info[0]
         energy = info[1]
-        #score = info[2]
+        score = info[2]
         done = info[-3]
         isPickUpNear = True if info[-2] == 0 else False
         nearPickUpValue = info[-1]
 
-        reward = energy - self.initial_energy
+        diff = energy - self.initial_energy + score
         self.initial_energy = energy
+
+        if diff < -1:
+            reward = -1
+        elif diff > 1:
+            reward = 1
+        else:
+            reward = 0
 
         infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue}
 
