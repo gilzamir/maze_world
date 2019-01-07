@@ -9,6 +9,7 @@ namespace bworld
     {
 
         public static bool gameIsPaused = false;
+        private bool isDone = false;
 
         // Use this for initialization
         void Start()
@@ -37,9 +38,14 @@ namespace bworld
             return 0;
         }
 
-        virtual public bool IsDone()
+        public bool IsDone()
         {
-            return false;
+            return this.isDone;
+        }
+
+        public void SetDone(bool value)
+        {
+            this.isDone = value;
         }
 
         virtual public void releaseFlag()

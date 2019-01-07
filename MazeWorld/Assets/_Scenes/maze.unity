@@ -4474,7 +4474,6 @@ GameObject:
   - component: {fileID: 2067570368}
   - component: {fileID: 2067570367}
   - component: {fileID: 2067570366}
-  - component: {fileID: 2067570365}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -4497,26 +4496,6 @@ Transform:
   m_Father: {fileID: 2143034220}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2067570365
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 114115764085246546, guid: d96e02b310e90427c9bcf7253e1015e8,
-    type: 2}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2067570363}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e11737e68b663a46bff0e194f38c4ed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  remoteIpAddress: 127.0.0.1
-  remotePort: 8888
-  frameWidth: 82
-  frameHeight: 82
-  verticalResolution: 10
-  horizontalResolution: 10
-  useRaycast: 1
 --- !u!81 &2067570366
 AudioListener:
   m_ObjectHideFlags: 0
@@ -4855,7 +4834,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bda63ab5533a05a4291cabf7ee8230b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  port: 8881
+  remoteIPAddress: 127.0.0.1
+  frameWidth: 84
+  frameHeight: 84
+  rayCastingWidth: 10
+  rayCastingHeight: 10
+  m_camera: {fileID: 2067570368}
 --- !u!82 &2143034215
 AudioSource:
   m_ObjectHideFlags: 0

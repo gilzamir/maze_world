@@ -14,7 +14,7 @@ namespace bworld
 
         private const int MISSION_ACCOMPLISHED = 200;
         private const int MISION_NON_ACCOMPLISHED = -200;
-        private const int ONE_MINUTE_ENERGY_LOSS = 1;
+        private const int ENERGY_LOSS = 1;
         private const int TARGET_VALUE = 100;
 
         private Rigidbody rb;
@@ -43,7 +43,7 @@ namespace bworld
         private GameObject pickUpDetectedStatus;
         private MazeSceneLogic currentSceneLogic;
         private GameObject preLoader;
-        private bool isDone;
+
         private GameObject btnRestart;
         private GameObject nearFlag;
         private GameObject nearPickUp;
@@ -86,7 +86,7 @@ namespace bworld
         {
             instance.isWithGoldSphere = false;
             instance.isInTeletransporter = false;
-            instance.isDone = false;
+            instance.SetDone(false);
             instance.isNearOfFlag = false;
             instance.countFlags = instance.MAX_NUMBER_OF_FLAGS;
             instance.isNearOfPickUp = false;
@@ -122,14 +122,12 @@ namespace bworld
             {
                 return;
             }
-            if (other.gameObject.CompareTag("PickUp"))
+            if (other.gameObject.CompareTag("PickUp") || other.gameObject.CompareTag("PickUpBad"))
             {
                 int idx = int.Parse(other.gameObject.name);
                 pickUpDetectedStatus.SetActive(true);
                 nearPickUp = other.gameObject;
-                //                other.gameObject.SetActive(false);
-                //                energy = energy + currentSceneLogic.getPickUpReward()[idx];
-                //                SetCountText();
+
                 Image img = pickUpDetectedStatus.GetComponent<Image>();
                 if (currentSceneLogic.getPickUpReward()[idx] > 0)
                 {
@@ -255,9 +253,7 @@ namespace bworld
                 count = count + MISION_NON_ACCOMPLISHED;
                 btnRestart.SetActive(true);
                 gameObject.transform.position = new Vector3(262.68f, -143.31f, 305.319f);
-                isDone = true;
-                PlayerRemoteSensor.SendMessageFrom(this,null, true);
-                PlayerLogicScene.gameIsPaused = true;
+                SetDone(true);
                 Time.timeScale = 0;
             }
             countText.text = "Score: " + count;
@@ -266,15 +262,10 @@ namespace bworld
         }
 
         override
-        public bool IsDone()
-        {
-            return isDone;
-        }
-
-        override
         public void Restart()
         {
             PlayerLogicScene.gameIsPaused = false;
+            SetDone(false);
             Time.timeScale = 1;
             SceneManager.LoadScene("maze");
         }
@@ -285,14 +276,7 @@ namespace bworld
             return "maze";
         }
 
-        private void LateUpdate()
-        {
-            if (PlayerLogicScene.gameIsPaused)
-            {
-                return;
-            }
-        }
-
+        
         // Update is called once per frame
         void Update()
         {
@@ -304,7 +288,7 @@ namespace bworld
             elapsedTime += UnityEngine.Time.deltaTime;
             if (elapsedTime > 1.0f)
             {
-                energy -= ONE_MINUTE_ENERGY_LOSS;
+                energy -= ENERGY_LOSS;
                 elapsedTime = 0.0f;
                 SetCountText();
             }

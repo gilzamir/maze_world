@@ -67,6 +67,7 @@ namespace UnityStandardAssets.Characters.ThirdPerson
             // read inputs
             float h = CrossPlatformInputManager.GetAxis("Horizontal");
             float v = CrossPlatformInputManager.GetAxis("Vertical");
+            
             float mv = Input.GetAxis("Mouse Y");
             float mh = Input.GetAxis("Mouse X");
 

@@ -9,6 +9,7 @@ TagManager:
   - Teletransporter
   - flag
   - wall
+  - PickUpBad
   layers:
   - Default
   - TransparentFX

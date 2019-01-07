@@ -9,7 +9,7 @@ public class MazeSceneLogic : MonoBehaviour {
     private const string TARGET_NAME = "GoldKey";
     private const int PICKUPMAP_SIZE = 80;
 
-    private const float BAD_PICKUP_CHANCE = 0.3f;
+    private const float BAD_PICKUP_CHANCE = 0.4f;
 
     private float pickUpShift = -0.5f;
     private float targetPositionShifit = -2;
@@ -146,21 +146,15 @@ public class MazeSceneLogic : MonoBehaviour {
             if (p <= BAD_PICKUP_CHANCE)
             {
                 instance.pickup_reward[i] = -10;
-                Instantiate<GameObject>(instance.pickUpBad, new Vector3(x, y, z), instance.pickUpBad.transform.rotation).name = "" + i;
+                GameObject bgo = Instantiate<GameObject>(instance.pickUpBad, new Vector3(x, y, z), instance.pickUpBad.transform.rotation);
+                bgo.name = "" + i;
+                bgo.tag = "PickUpBad";
             }
             else
             {
                 instance.pickup_reward[i] = 10;
                 Instantiate<GameObject>(instance.pickUpGood, new Vector3(x, y, z), instance.pickUpGood.transform.rotation).name = "" + i;
             }
-        }
-    }
-	
-	// Update is called once per frame
-	void Update () {
-        if (PlayerLogicScene.gameIsPaused)
-        {
-            return;
         }
     }
 }
