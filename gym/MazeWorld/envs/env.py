@@ -57,15 +57,15 @@ class Environment(gym.Env):
         path = os.environ['MW_PATH']
         
         cmd = None
-        if platform.system()=='Windows':
+        systemname = platform.system()
+        if systemname=='Windows':
             cmd = 'start %s -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
+        elif systemname=='Darwin':
+            cmd = 'open -a %s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
         else:
-            if not path.endswith(os.path.sep):
-                path += os.path.sep
-            cmd = '%smazeworld -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
-
+            cmd = '%s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
         os.system(cmd)
-        
+
 
 
     def get_action_meanings(self):
