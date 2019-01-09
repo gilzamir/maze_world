@@ -141,20 +141,21 @@ class Environment(gym.Env):
 
         pinfos = None
         reward = 0
-
+        get_pickup = False
         if self.prev_perception:
             _, _, _, pinfos = self.prev_perception
             wasPickUpNear = pinfos['isPickUpNear']
             pickUpValue = pinfos['nearPickUpValue']
             if wasPickUpNear and ACTION_MEANING[action] == "PICKUP":
                 reward += pickUpValue
+                get_pickup = True
 
         lives = info[0]
         self.nlives = lives
         energy = info[1]
         #score = info[2]
         done = info[-3]
-        isPickUpNear = True if info[-2] == 1 else False
+        isPickUpNear = True if (info[-2] == 1 and not get_pickup) else False
         nearPickUpValue = info[-1]
 
         '''

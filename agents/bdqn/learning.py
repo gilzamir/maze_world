@@ -95,7 +95,7 @@ for i in range(MAX_EPSODES):
         if RENDER:
             env.render()
     
-    if (agent.epoch % 1000 == 0):
+    if (agent.epoch % 100 == 0):
         agent.save("model%d" % (agent.epoch))
 
     count_loss = agent.step
