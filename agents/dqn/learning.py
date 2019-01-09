@@ -13,7 +13,7 @@ import MazeWorld
 
 agent = Agent( (10, 10), 7)
 agent.front2back()
-agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/500000)
+agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/1000000)
 
 def pre_processing(observe):
     observe = np.array(observe)
@@ -23,21 +23,13 @@ def pre_processing(observe):
 
 LOSS = 0.0
 
-def back2front(agent, loss):
-    global LOSS
-    agent.loss += loss
-    agent.count_loss += 1
-    LOSS += loss
-    agent.back2front()
-
-
 RENDER = False
 REFRESH_MODEL_NUM = 10000
-N_RANDOM_STEPS = 5000
+N_RANDOM_STEPS = 50000
 MAX_EPSODES = 100000000
 NO_OP_STEPS = 30
-FRAME_SKIP = 10
-NOOP_ACTION = 6
+FRAME_SKIP = 4
+NOOP_ACTION = [0,1,6]
 
 env = gym.make('MazeWorld-v0')
 
@@ -53,34 +45,39 @@ for i in range(MAX_EPSODES):
     action = 0
     next_state = None
 
-    for _ in range(NO_OP_STEPS):
-        frame = env.step(NOOP_ACTION, FRAME_SKIP)[0]
+    for _ in range(random.randint(0, NO_OP_STEPS)) :
+        action = random.sample(NOOP_ACTION,1)[0]
+        frame = env.step(action, FRAME_SKIP)[0]
 
     if not env.useRaycasting:
         frame = pre_processing(frame)
 
     stack_frame = tuple([frame]*agent.skip_frames)
     initial_state = np.stack(stack_frame, axis=2)
-    initial_state = np.reshape([initial_state], (1, env.vresolution, env.hresolution, agent.skip_frames))
+    initial_state = np.reshape([initial_state], (1, agent.skip_frames, env.vresolution, env.hresolution))
     score = 0
     dead = False
-    freq = np.zeros(agent.action_size)
     while not is_done:
         dead = False
         if agent.global_step >= N_RANDOM_STEPS:
             action = agent.act(initial_state)
         else:
             action = agent.act(initial_state, True)
-        freq[action] += 1
+
         frame, reward, is_done, info = env.step(agent.contextual_actions[action], FRAME_SKIP)
+
+        #reward += agent.baredom_value
 
         next_frame = frame
         if not env.useRaycasting:
             next_frame = pre_processing(next_frame)
-        next_state = np.reshape([next_frame], (1, env.vresolution, env.hresolution, 1))
-        next_state = np.append(next_state, initial_state[:, :, :, :(FRAME_SKIP-1)], axis=3)
-        score += reward
+        
+        next_state = np.reshape([next_frame], (1, 1, env.vresolution, env.hresolution))
+        next_state = np.append(next_state, initial_state[:, :(FRAME_SKIP-1), :, :], axis=1)
+        
         reward = np.clip(reward, -1.0, 1.0)
+
+        score += reward
     
         end_eps = dead or is_done
         

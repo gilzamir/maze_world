@@ -66,6 +66,68 @@ def sample(buffer, size):
         result.append(buffer[i])
     return result
 
+def fn_constantbehavioralcontrol(ctime, owner, min, max, initial_value, current_value, target_value):
+    dif = current_value - initial_value
+    delta = 0.1 if dif > 0 else -0.1
+    delta = delta/dif
+    return current_value - delta
+
+def fn_linearbehavioralvalue(ctime, owner, min, max, initial_value, current_value):
+    c = min + 0.5 * (max - min)
+    d = abs(current_value - c)
+    if d > 0:
+        return 2.0 * (max-min)/d - 1.0
+    else:
+        return 2.0
+
+def baredom_control(ctime, owner, min, max, initial_value, current_value, target_value):
+    owner.delta_time = ctime - owner.start_time
+    if owner.delta_time > 100:
+        owner.action_count = [0]*7
+        owner.start_time = ctime
+        owner.baredom_freq = float(owner.action_count[0])/owner.delta_time
+    else:
+        owner.action_count[owner.last_action] += 1
+    return owner.baredom_freq
+
+class BehavioralRange:
+    def __init__(self, name,  owner, initial_value, min=0.0, max=1.0, target_value=2.0, fn_value=fn_linearbehavioralvalue, fn_control=fn_constantbehavioralcontrol):
+        self.name = name
+        self.owner = owner
+        self.min = min
+        self.max = max
+        self.target_value = target_value
+        self.initial_value = initial_value
+        self.current_value = initial_value
+        self.fn_value = fn_value
+        self.fn_control = fn_control
+
+    def update(self, ctime):
+        self.current_value = self.fn_control(ctime, self.owner, self.min, self.max, self.initial_value, self.current_value, self.target_value)
+        return self.fn_value(ctime, self.owner, self.min, self.max, self.initial_value, self.current_value)
+
+
+class BehavioralEngine:
+    def __init__(self, behaviors =  []):
+        self.behaviors = behaviors
+        self.sum_of_values = 0.0
+    
+    def update(self, ctime):
+        values = {}
+        self.sum_of_values = 0.0
+        for b in self.behaviors:
+            v = b.update(ctime)
+            values[b.name] = v
+            self.sum_of_values += v
+        return values
+
+    def avg_value(self):
+        if len(self.behaviors) > 0:
+            return self.sum_of_values/len(self.behaviors)
+        else:
+            return 0.0  
+
+
 class DQNAgent:
     def __init__(self, state_size, action_size):
 
@@ -86,15 +148,18 @@ class DQNAgent:
         self.psize = 0
         self.nsize = 0
         self.ntsize = 0
-        self.skip_frames = 10
+        self.skip_frames = 4
         self.step = 0
         self.loss = 0.0
         self.count_loss = 1
         self.global_step = 0
-        self.contextual_actions = [0, 1, 2, 3, 4, 5, 6, 7]
+        self.contextual_actions = [0, 1, 2, 3, 4, 5, 6]
         self.epoch = 0
         self.mask_actions = np.ones(self.action_size).reshape(1, self.action_size)
         self.replay_is_running = False
+
+        self.baredom_freq = 0.0
+
         self.graph = tf.get_default_graph()
         self.session = keras.backend.get_session()
         self.model = self._build_model()
@@ -110,28 +175,32 @@ class DQNAgent:
         if is_new_epoch:
             self.epoch += 1
         self.step = 0
+        self.last_action = None
+        self.action_count = [0] * 7
+        self.delta_time = 0
+        self.start_time = 0
+        self.baredom = BehavioralRange("baredom", self, 0.0, 0.2, 0.5, fn_control=baredom_control)
 
     def _build_model(self):
-        ATARI_SHAPE = (self.state_size[0], self.state_size[1], self.skip_frames)  # input image size to model
+        ATARI_SHAPE = (self.skip_frames, self.state_size[0], self.state_size[1])  # input image size to model
         ACTION_SIZE = self.action_size
         # With the functional API we need to define the inputs.
         frames_input = layers.Input(ATARI_SHAPE, name='frames')
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
-        #size = self.state_size[0] * self.state_size[1] * self.skip_frames
+        size = self.state_size[0] * self.state_size[1] * self.skip_frames
         normalize = layers.Lambda( lambda x : x/6.0) (frames_input)
-        reshape = layers.Flatten()(normalize)
-        #lstm_layer = layers.recurrent.LSTM(64, return_sequences=True)(reshape) 
-
-        hidden = layers.Dense(128)(reshape)
-        hidden2 = layers.Dense(128)(hidden)
-        output = layers.Dense(ACTION_SIZE)(hidden2)
+        flattened = layers.Flatten()(normalize)
+        reshape = layers.Reshape( (1, size) )(flattened)
+        lstm_layer = layers.recurrent.LSTM(32, return_sequences=True)(reshape) 
+        hidden = layers.Dense(32)(lstm_layer)
+        output = layers.Dense(ACTION_SIZE)(hidden)
 
         filtered_output = layers.Multiply(name='QValue')([output, actions_input])
 
         model = Model(inputs=[frames_input, actions_input], outputs=filtered_output)
         model.summary()
-        optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
-        
+        #optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
+        optimizer = Adam(lr=self.learning_rate)
         model.compile(optimizer, loss=huber_loss)
         return model
 
@@ -187,16 +256,15 @@ class DQNAgent:
                 self.epsilon = self.epsilon_min
 
     def act(self, state, is_randomic = False):
-        action = 0
         p = np.random.rand()
         if is_randomic or p <= self.epsilon:
-            self.update_internal(is_randomic)
-            return np.random.choice(np.arange(0, self.action_size))
+            self.last_action = np.random.choice(np.arange(0, self.action_size))
         else:
             act_values = self.model.predict([state, self.mask_actions])
-            action = np.argmax(act_values[0])
-            self.update_internal(is_randomic)
-            return action
+            self.last_action = np.argmax(act_values[0])
+        self.update_internal(is_randomic)
+        #self.baredom_value = self.baredom.update(self.step)
+        return self.last_action
 
 
     def replay(self, batch_size, postask=None):
@@ -214,9 +282,9 @@ class DQNAgent:
         batch_size = len(minibatch)
 
         states = np.zeros(
-            (batch_size, self.state_size[0], self.state_size[1], self.skip_frames))
+            (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
         next_states = np.zeros(
-            (batch_size, self.state_size[0], self.state_size[1], self.skip_frames))
+            (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
         actions = []
         rewards = []
         dones = []

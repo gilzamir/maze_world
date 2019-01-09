@@ -210,6 +210,7 @@ namespace bworld
                 pickUpDetectedStatus.SetActive(false);
                 isNearOfPickUp = false;
                 energy = energy + currentSceneLogic.getPickUpReward()[idx];
+                if (energy < 0) energy = 0;
                 SetCountText();
             }
         }
@@ -240,14 +241,15 @@ namespace bworld
 
         void SetCountText()
         {
-            if (energy > 0 && isWithGoldSphere && isInTeletransporter)
+            if (energy > 0 && isWithGoldSphere && isInTeletransporter && !IsDone())
             {
                 winText.text = " You Win!!!";
                 btnRestart.SetActive(true);
                 gameObject.transform.position = new Vector3(262.68f, -143.31f, 305.319f);
+                SetDone(true);
                 Time.timeScale = 0;
             }
-            else if (energy <= 0)
+            else if (energy <= 0 && !IsDone())
             {
                 winText.text = "Game Over!";
                 count = count + MISION_NON_ACCOMPLISHED;
@@ -289,6 +291,7 @@ namespace bworld
             if (elapsedTime > 1.0f)
             {
                 energy -= ENERGY_LOSS;
+                if (energy < 0) energy = 0;
                 elapsedTime = 0.0f;
                 SetCountText();
             }

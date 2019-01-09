@@ -53,7 +53,7 @@ class Environment(gym.Env):
         self.observation_space = spaces
         self.observation_space = spaces.Box(low=0, high=self.maxValue, shape=(self.vresolution, self.hresolution, 1), dtype=np.uint8)
         self.last_frame = None
-        
+
         path = os.environ['MW_PATH']
         
         cmd = None
@@ -122,6 +122,8 @@ class Environment(gym.Env):
         return self._agent_perception()
 
     def reset(self):
+        self.initial_energy = 15
+        self.prev_perception = None
         actions.restart(self.net)
         sleep(0.2)
         _, frame = self._get_one_step(0)
@@ -133,27 +135,38 @@ class Environment(gym.Env):
     def render(self, mode='human', close=False):
         return self.last_frame
 
-    def _prepare_data(self, info, frame):
+    def _prepare_data(self, info, frame, action):
         if not self.useRaycasting:
             frame = Image.open(io.BytesIO(frame))
+
+        pinfos = None
+        reward = 0
+
+        if self.prev_perception:
+            _, _, _, pinfos = self.prev_perception
+            wasPickUpNear = pinfos['isPickUpNear']
+            pickUpValue = pinfos['nearPickUpValue']
+            if wasPickUpNear and ACTION_MEANING[action] == "PICKUP":
+                reward += pickUpValue
 
         lives = info[0]
         self.nlives = lives
         energy = info[1]
-        score = info[2]
+        #score = info[2]
         done = info[-3]
-        isPickUpNear = True if info[-2] == 0 else False
+        isPickUpNear = True if info[-2] == 1 else False
         nearPickUpValue = info[-1]
 
+        '''
         diff = energy - self.initial_energy + score
         self.initial_energy = energy
-
-        if diff < -1 or energy <= 0:
+        if diff < -1:
             reward = -1
         elif diff > 1:
             reward = 1
         else:
             reward = 0
+        '''
 
         infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue}
         self.last_frame = frame
@@ -166,13 +179,14 @@ class Environment(gym.Env):
         actions.resume(self.net)
         info = None
         frame = None
-        action = self.action_map[action]
+        maction = self.action_map[action]
         if frame_skip > 0:
             for _ in range(frame_skip-1):
-                ACTIONS[action](self.net, cmdtype="action ignore frame")
-        info, frame = self._get_one_step(action)
+                ACTIONS[maction](self.net, cmdtype="action ignore frame")
+        info, frame = self._get_one_step(maction)
+        self.prev_perception = self._prepare_data(info, frame, action)
         actions.pause(self.net)
-        return self._prepare_data(info, frame)
+        return self.prev_perception
 
     def __del__(self):
         self.net.close()
