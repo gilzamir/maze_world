@@ -86,7 +86,7 @@ class DQNAgent:
         self.psize = 0
         self.nsize = 0
         self.ntsize = 0
-        self.skip_frames = 10
+        self.skip_frames = 4
         self.step = 0
         self.loss = 0.0
         self.count_loss = 1
@@ -112,22 +112,17 @@ class DQNAgent:
         self.step = 0
 
     def _build_model(self):
-        ATARI_SHAPE = (self.state_size[0], self.state_size[1], self.skip_frames)  # input image size to model
+        ATARI_SHAPE = (self.skip_frames, self.state_size[0], self.state_size[1])  # input image size to model
         ACTION_SIZE = self.action_size
         # With the functional API we need to define the inputs.
         frames_input = layers.Input(ATARI_SHAPE, name='frames')
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
-        #size = self.state_size[0] * self.state_size[1] * self.skip_frames
         normalize = layers.Lambda( lambda x : x/6.0) (frames_input)
         reshape = layers.Flatten()(normalize)
-        #lstm_layer = layers.recurrent.LSTM(64, return_sequences=True)(reshape) 
-
         hidden = layers.Dense(128)(reshape)
         hidden2 = layers.Dense(128)(hidden)
         output = layers.Dense(ACTION_SIZE)(hidden2)
-
         filtered_output = layers.Multiply(name='QValue')([output, actions_input])
-
         model = Model(inputs=[frames_input, actions_input], outputs=filtered_output)
         model.summary()
         optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
@@ -214,9 +209,9 @@ class DQNAgent:
         batch_size = len(minibatch)
 
         states = np.zeros(
-            (batch_size, self.state_size[0], self.state_size[1], self.skip_frames))
+            (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
         next_states = np.zeros(
-            (batch_size, self.state_size[0], self.state_size[1], self.skip_frames))
+            (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
         actions = []
         rewards = []
         dones = []
