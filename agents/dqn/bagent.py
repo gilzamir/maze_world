@@ -116,14 +116,16 @@ class DQNAgent:
         ACTION_SIZE = self.action_size
         # With the functional API we need to define the inputs.
         frames_input = layers.Input(ATARI_SHAPE, name='frames')
+        propriception_input = layers.Input((2, ), name='proprioception')
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
         normalize = layers.Lambda( lambda x : x/6.0) (frames_input)
         reshape = layers.Flatten()(normalize)
         hidden = layers.Dense(128)(reshape)
-        hidden2 = layers.Dense(128)(hidden)
+        proprioception_hidden = layers.Concatenate()([hidden, propriception_input])
+        hidden2 = layers.Dense(128)(proprioception_hidden)
         output = layers.Dense(ACTION_SIZE)(hidden2)
         filtered_output = layers.Multiply(name='QValue')([output, actions_input])
-        model = Model(inputs=[frames_input, actions_input], outputs=filtered_output)
+        model = Model(inputs=[frames_input, actions_input, propriception_input], outputs=filtered_output)
         model.summary()
         optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
         
@@ -148,22 +150,22 @@ class DQNAgent:
     def back2front(self):
         self.model.set_weights(self.back_model.get_weights())
 
-    def remember(self, state, action, reward, next_state, done):
+    def remember(self, state, proprioception, action, reward, next_state, next_proprioception, done):
         if reward > 0:
             self.positive_memory.append(
-                (state, action, reward, next_state, done))
+                (state, proprioception, action, reward, next_state, next_proprioception, done))
             self.psize += 1
             if (self.psize > self.positive_memory.maxlen):
                 self.psize = self.positive_memory.maxlen
         elif reward < 0:
             self.negative_memory.append(
-                (state, action, reward, next_state, done))
+                (state, proprioception, action, reward, next_state, next_proprioception, done))
             self.nsize += 1
             if (self.nsize > self.negative_memory.maxlen):
                 self.nsize = self.negative_memory.maxlen
         else:
             self.neutral_memory.append(
-                (state, action, reward, next_state, done))
+                (state, proprioception, action, reward, next_state, next_proprioception, done))
             self.ntsize += 1
             if (self.ntsize > self.neutral_memory.maxlen):
                 self.ntsize = self.neutral_memory.maxlen
@@ -181,14 +183,14 @@ class DQNAgent:
             else:
                 self.epsilon = self.epsilon_min
 
-    def act(self, state, is_randomic = False):
+    def act(self, state, is_randomic = False, proprioception=[0,0]):
         action = 0
         p = np.random.rand()
         if is_randomic or p <= self.epsilon:
             self.update_internal(is_randomic)
             return np.random.choice(np.arange(0, self.action_size))
         else:
-            act_values = self.model.predict([state, self.mask_actions])
+            act_values = self.model.predict([state, self.mask_actions, np.expand_dims(proprioception, 0)])
             action = np.argmax(act_values[0])
             self.update_internal(is_randomic)
             return action
@@ -210,8 +212,15 @@ class DQNAgent:
 
         states = np.zeros(
             (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
+
+        proprioceptions = np.zeros( (batch_size, 2) )
+
         next_states = np.zeros(
             (batch_size, self.skip_frames, self.state_size[0], self.state_size[1]))
+
+
+        next_proprioceptions = np.zeros( (batch_size, 2) )
+
         actions = []
         rewards = []
         dones = []
@@ -221,13 +230,15 @@ class DQNAgent:
         idx = 0
         for idx, val in enumerate(minibatch):
             states[idx] = val[0]
-            next_states[idx] = val[3]
-            actions.append(val[1])
-            rewards.append(val[2])
-            dones.append(val[4])
+            next_states[idx] = val[4]
+            actions.append(val[2])
+            rewards.append(val[3])
+            dones.append(val[6])
+            proprioceptions[idx] = val[1]
+            next_proprioceptions[idx] = val[5]
 
         actions_mask = np.ones((batch_size, self.action_size))
-        next_Q_values = self.back_model.predict([next_states, actions_mask])
+        next_Q_values = self.back_model.predict([next_states, actions_mask, next_proprioceptions])
 
         for i in range(batch_size):
             if dones[i]:
@@ -239,7 +250,7 @@ class DQNAgent:
         target_one_hot = action_one_hot * targets[:, None]
 
         h = self.model.fit(
-            [states, action_one_hot], target_one_hot, epochs=1, batch_size=batch_size, verbose=0)
+            [states, action_one_hot, proprioceptions], target_one_hot, epochs=1, batch_size=batch_size, verbose=0)
 
         self.last_loss = h.history['loss'][0]
         if postask:

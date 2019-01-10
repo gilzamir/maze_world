@@ -158,17 +158,6 @@ class Environment(gym.Env):
         isPickUpNear = True if (info[-2] == 1 and not get_pickup) else False
         nearPickUpValue = info[-1]
 
-        '''
-        diff = energy - self.initial_energy + score
-        self.initial_energy = energy
-        if diff < -1:
-            reward = -1
-        elif diff > 1:
-            reward = 1
-        else:
-            reward = 0
-        '''
-
         infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue}
         self.last_frame = frame
         return frame, reward, done, infos

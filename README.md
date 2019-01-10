@@ -6,6 +6,11 @@ Introduction
 
 The Maze World is an environment to artificial intelligence and virtual reality experiments. The purpose of using this environment in virtual reality is to evaluate  virtual characters (or virtual humans) behaviors based on behavioral models.
 
+Environment documentation:
+
+- ![English](https://1drv.ms/b/s!AkkX5pv0cl3ahJRjDnzRYLZdnwkpxg)
+- ![Portuguese](https://1drv.ms/b/s!AkkX5pv0cl3ahJRsekrzq-Cbp6qhUQ)
+
 Dependencies
 --
 
