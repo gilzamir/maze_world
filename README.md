@@ -8,8 +8,8 @@ The Maze World is an environment to artificial intelligence and virtual reality 
 
 Environment documentation:
 
-- ![English](https://1drv.ms/b/s!AkkX5pv0cl3ahJRjDnzRYLZdnwkpxg)
-- ![Portuguese](https://1drv.ms/b/s!AkkX5pv0cl3ahJRsekrzq-Cbp6qhUQ)
+- [English](https://1drv.ms/b/s!AkkX5pv0cl3ahJRjDnzRYLZdnwkpxg)
+- [Portuguese](https://1drv.ms/b/s!AkkX5pv0cl3ahJRsekrzq-Cbp6qhUQ)
 
 Dependencies
 --
