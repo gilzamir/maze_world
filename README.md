@@ -69,7 +69,7 @@ If a window appears (As the next image shows) as the window of a first person ga
 
 ![Example](img/fig1.png)
 
-To uses experimental agent, go to agents/dqn directory of repository, and enter the following command:
+To uses experimental agent, go to agents/simple_dqn directory of repository, and enter the following command:
 
         python learning.py.
 
