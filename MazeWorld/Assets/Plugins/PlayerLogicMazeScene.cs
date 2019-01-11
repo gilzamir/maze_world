@@ -221,6 +221,7 @@ namespace bworld
             {
                 return;
             }
+
             if (other.gameObject.CompareTag("Teletransporter"))
             {
                 isInTeletransporter = false;
@@ -230,7 +231,7 @@ namespace bworld
                 flagDetectedStatus.SetActive(false);
                 isNearOfFlag = false;
                 nearFlag = null;
-            } else if (other.gameObject.CompareTag("PickUp"))
+            } else if (other.gameObject.CompareTag("PickUp") || other.gameObject.CompareTag("PickUpBad"))
             {
                 pickUpDetectedStatus.SetActive(false);
                 isNearOfPickUp = false;
