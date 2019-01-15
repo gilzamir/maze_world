@@ -23,23 +23,20 @@ def make_inference_network(obs_shape, n_actions, debug=False):
     #    rectifier. The final hidden layer is fully-connected and consists of 512 rectifier units.
     #    The output layer is a fully-connected linear layer with a single output for each valid
     #    action."
-
     observations = tf.placeholder(tf.float32, [None] + list(obs_shape))
 
     # Numerical arguments are filters, kernel_size, strides
-    conv1 = tf.layers.conv2d(observations, 16, 3, 1, activation=tf.nn.relu, name='conv1')
+    conv1 = tf.layers.conv2d(observations, 16, 1, 1, activation=tf.nn.relu, name='conv1')
     if debug:
         # Dump observations as fed into the network to stderr for viewing with show_observations.py.
         conv1 = tf.Print(conv1, [observations], message='\ndebug observations:',
                          summarize=2147483647)  # max no. of values to display; max int32
-    conv2 = tf.layers.conv2d(conv1, 16, 1, 1, activation=tf.nn.relu, name='conv2')
+    conv2 = tf.layers.conv2d(conv1, 16, 3, 1, activation=tf.nn.relu, name='conv2')
+    #conv3 = tf.layers.conv2d(conv2, 16, 3, 1, activation=tf.nn.relu, name='conv3')
 
     w, h, f = conv2.get_shape()[1:]
     conv2_unwrapped = tf.reshape(conv2, [-1, int(w * h * f)])
-
-    lstm = rnn.BasicLSTMCell(256)
-
-    features = tf.layers.dense(conv2_unwrapped, 256, activation=tf.nn.relu, name='features')
+    features = tf.layers.dense(conv2_unwrapped, 216, activation=tf.nn.relu, name='features')
 
     action_logits = tf.layers.dense(features, n_actions, activation=None, name='action_logits')
     action_probs = tf.nn.softmax(action_logits)
@@ -49,7 +46,7 @@ def make_inference_network(obs_shape, n_actions, debug=False):
     # Convert to just (?)
     values = values[:, 0]
 
-    layers = [conv1, conv2, lstm, features]
+    layers = [conv1, conv2, features]
 
     return observations, action_logits, action_probs, values, layers
 

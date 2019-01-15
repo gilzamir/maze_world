@@ -11,6 +11,7 @@ import random
 import gym
 import io
 import MazeWorld
+import datetime
 
 agent = Agent( (10, 10), 7)
 agent.front2back()
@@ -49,12 +50,10 @@ for i in range(MAX_EPSODES):
     agent.reset()
     action = 0
     next_state = None
-    initial_proprioception = np.array([0, 0])
 
     for _ in range(random.randint(1, NO_OP_STEPS)) :
         action = random.sample(NOOP_ACTION,1)[0]
         frame, _, _, info = env.step(action, FRAME_SKIP)
-        initial_proprioception = np.array([ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1) ])
 
     if not env.useRaycasting:
         frame = pre_processing(frame)
@@ -68,12 +67,11 @@ for i in range(MAX_EPSODES):
     while not is_done:
         dead = False
         if agent.global_step >= N_RANDOM_STEPS:
-            action = agent.act(initial_state, proprioception=initial_proprioception)
+            action = agent.act(initial_state)
         else:
-            action = agent.act(initial_state, True, proprioception=initial_proprioception)
+            action = agent.act(initial_state, True)
 
         frame, reward, is_done, info = env.step(agent.contextual_actions[action], FRAME_SKIP)
-        next_proprioception = np.array([ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1) ])
 
         next_frame = frame
         if not env.useRaycasting:
@@ -88,7 +86,7 @@ for i in range(MAX_EPSODES):
     
         end_eps = dead or is_done
         
-        agent.remember(initial_state, initial_proprioception, action, reward, next_state, next_proprioception, end_eps)
+        agent.remember(initial_state, action, reward, next_state, end_eps)
         if (agent.global_step >= N_RANDOM_STEPS):
             LOSS += agent.replay(batch_size)
             if agent.global_step % REFRESH_MODEL_NUM == 0:
@@ -96,7 +94,6 @@ for i in range(MAX_EPSODES):
 
         if not is_done:
             initial_state = next_state
-            initial_proprioception = next_proprioception
 
         if random.random() <= 0.005:
             print("EPISODE: %d. SUM OF REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f." % (
@@ -111,10 +108,10 @@ for i in range(MAX_EPSODES):
     count_loss = agent.step
     if count_loss == 0:
         count_loss = 1
-
-    print("EPISODE IS OVER. EPISODE: %d. SUM OF REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f." % (
-        i, score, agent.epsilon, agent.step, agent.global_step, LOSS/count_loss))
-    log.write("EPISODE IS OVER. EPISODE: %d. SUM OF REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f.\n" % (
-        i, score, agent.epsilon, agent.step, agent.global_step, LOSS/count_loss))
+    now = datetime.datetime.now().time()
+    print("EPISODE IS OVER. EPISODE: %d. SUM OF REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Time: %s" % (
+        i, score, agent.epsilon, agent.step, agent.global_step, LOSS/count_loss, now))
+    log.write("EPISODE IS OVER. EPISODE: %d. SUM OF REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Time: %s\n" % (
+        i, score, agent.epsilon, agent.step, agent.global_step, LOSS/count_loss, now))
     log.flush()
     LOSS = 0.0

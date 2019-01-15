@@ -130,7 +130,7 @@ class DQNAgent:
         model.summary()
         optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
         
-        model.compile(optimizer, loss=huber_loss)
+        model.compile(optimizer, loss='mse')
         return model
 
     def memory_size(self):

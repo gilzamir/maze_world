@@ -75,6 +75,31 @@ To uses experimental agent, go to agents/simple_dqn directory of repository, and
 
 Results on the progress of agent learning will be shown on the screen. Soon, I'll use tensorboard to keep up with the progress of the training.
 
+Agents
+--
+
+There are some agents avalaible in the maze_world repository. Agents code are in 'agents' directory. Directory names that begin with the word 'test' are simple examples of code for interaction with the environment. Others directory names are useful agents. Some of these agents have been implemented by me. The complete list of agents is:
+
+- dqn_with_behavior_model: experimental setup basead in Deep Q Network (DQN), behavior model and artificial vision.
+- dqn_with_proprioception: experimental setup based in DQN, artificial vision and  extra sensorial input (the touch with fruits or portions).
+- simple_dqn: simple DQN agent with artificial vision.
+- ocd-a3c: a3c based agent. This agent is based in repository of Matthew Rahtz. Complete code and description is hosted [here](https://github.com/mrahtz/ocd-a3c).
+
+DQN based agents use DQN algorith with balanced replay memory. The replay memory has a maximum capacity 60 thousand samples. The memory is divided into three groups: positive memory, negative memory and neutral memory. Negative memory store samples with reward value equals to minus one (-1). Postive memory store samples with reward value equals to one (+1). Neutral memory store samples with reward value equals to zero. The memory maxium lenght for each type of memory is 20,000 samples. The command to run experiments with DQN based agents is:
+
+        python learning
+
+The command to run experiments with agent OCD-A3C is:
+
+        python3 train.py --n_workers <no. of workers>  MazeWorld-v0
+
+
+where <no. of workers> is a number of independent threads of training. For example, the command
+
+        python3 train.py --n_workers 16  MazeWorld-v0
+
+initialize sexteen training threads simultaneously.
+
 Note
 -
 This environment is under development, soon I will post more information about experiments and results obtained with the development of this environment.
