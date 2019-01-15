@@ -87,7 +87,7 @@ There are some agents avalaible in the maze_world repository. Agents code are in
 
 DQN based agents use DQN algorith with balanced replay memory. The replay memory has a maximum capacity 60 thousand samples. The memory is divided into three groups: positive memory, negative memory and neutral memory. Negative memory store samples with reward value equals to minus one (-1). Postive memory store samples with reward value equals to one (+1). Neutral memory store samples with reward value equals to zero. The memory maxium lenght for each type of memory is 20,000 samples. The command to run experiments with DQN based agents is:
 
-        python learning
+        python learning.py
 
 The command to run experiments with agent OCD-A3C is:
 
