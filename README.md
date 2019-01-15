@@ -98,7 +98,7 @@ where <no. of workers> is a number of independent threads of training. For examp
 
         python3 train.py --n_workers 16  MazeWorld-v0
 
-initialize sexteen training threads simultaneously.
+initialize sixteen training threads simultaneously.
 
 Note
 -
