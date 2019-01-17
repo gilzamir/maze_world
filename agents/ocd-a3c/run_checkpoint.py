@@ -13,6 +13,7 @@ import tensorflow as tf
 
 from network import make_inference_network
 from preprocessing import generic_preprocess
+import MazeWorld
 
 
 def main():
