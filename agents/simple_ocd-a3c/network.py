@@ -24,7 +24,6 @@ def make_inference_network(obs_shape, n_actions, debug=False):
     #    The output layer is a fully-connected linear layer with a single output for each valid
     #    action."
     observations = tf.placeholder(tf.float32, [None] + list(obs_shape))
-    proprioceptions = tf.placeholder(tf.float32, (None, 2) )
 
     # Numerical arguments are filters, kernel_size, strides
     conv1 = tf.layers.conv2d(observations, 16, 1, 1, activation=tf.nn.relu, name='conv1')
@@ -38,19 +37,18 @@ def make_inference_network(obs_shape, n_actions, debug=False):
     w, h, f = conv2.get_shape()[1:]
     conv2_unwrapped = tf.reshape(conv2, [-1, int(w * h * f)])
     features = tf.layers.dense(conv2_unwrapped, 216, activation=tf.nn.relu, name='features')
-    expanded_features = tf.concat([features, proprioceptions], 1)
 
-    action_logits = tf.layers.dense(expanded_features, n_actions, activation=None, name='action_logits')
+    action_logits = tf.layers.dense(features, n_actions, activation=None, name='action_logits')
     action_probs = tf.nn.softmax(action_logits)
 
-    values = tf.layers.dense(expanded_features, 1, activation=None, name='value')
+    values = tf.layers.dense(features, 1, activation=None, name='value')
     # Shape is currently (?, 1)
     # Convert to just (?)
     values = values[:, 0]
 
-    layers = [conv1, conv2, expanded_features]
+    layers = [conv1, conv2, features]
 
-    return observations, proprioceptions, action_logits, action_probs, values, layers
+    return observations, action_logits, action_probs, values, layers
 
 
 def make_loss_ops(action_logits, values, entropy_bonus, value_loss_coef, debug):
@@ -109,7 +107,7 @@ class Network:
 
         with tf.variable_scope(scope):
 
-            observations, proprioceptions, action_logits, action_probs, value, layers = \
+            observations, action_logits, action_probs, value, layers = \
                 make_inference_network(obs_shape=(10, 10, 4), n_actions=n_actions, debug=debug)
 
             actions, returns, advantage, policy_entropy, policy_loss, value_loss, loss = \
@@ -122,7 +120,6 @@ class Network:
                                              max_grad_norm=max_grad_norm)
 
         self.states = observations
-        self.proprioceptions = proprioceptions
         self.action_probs = action_probs
         self.value = value
         self.actions = actions
