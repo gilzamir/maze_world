@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import random
-import actions
 import MazeWorld
 import gym
 

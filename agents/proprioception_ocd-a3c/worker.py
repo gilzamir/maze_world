@@ -71,6 +71,7 @@ class Worker:
             actions.append(action)
             obs, reward, done, info = self.env.step(action)
             next_proprioception = np.array([ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1) ])
+            reward = reward + info['score']
             self.last_state = obs
             self.last_proprioception = next_proprioception 
             rewards.append(reward)

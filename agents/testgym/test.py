@@ -1,8 +1,6 @@
 import gym
 import MazeWorld
 import random
-import actions
-
 
 env = gym.make('MazeWorld-v0')
 env2 = gym.make('MazeWorld-v0')

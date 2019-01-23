@@ -153,12 +153,12 @@ class Environment(gym.Env):
         lives = info[0]
         self.nlives = lives
         energy = info[1]
-        #score = info[2]
+        score = info[2]
         done = info[-3]
         isPickUpNear = True if (info[-2] == 1 and not get_pickup) else False
         nearPickUpValue = info[-1]
 
-        infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue}
+        infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score}
         self.last_frame = frame
         return frame, reward, done, infos
         
