@@ -66,18 +66,18 @@ def sample(buffer, size):
         result.append(buffer[i])
     return result
 
-def fn_constantbehavioralcontrol(ctime, owner, min, max, initial_value, current_value, target_value):
+def fn_constantbehavioralcontrol(ctime, owner, vmin, vmax, initial_value, current_value, target_value):
     dif = current_value - initial_value
     delta = 0.1 if dif > 0 else -0.1
     delta = delta/dif
     return current_value - delta
 
-def fn_linearbehavioralvalue(ctime, owner, min, max, initial_value, current_value):
-    c = min + 0.5 * (max - min)
+def fn_linearbehavioralvalue(ctime, owner, vmin, vmax, initial_value, current_value):
+    c = vmin + 0.5 * (vmax - vmin)
     d = abs(current_value - c)
-    return 2.0 * (1.0 - d/(max-min)) - 1.0
+    return 2.0 * (1.0 - d/(vmax-vmin)) - 1.0
 
-def baredom_control(ctime, owner, min, max, initial_value, current_value, target_value):
+def baredom_control(ctime, owner, vmin, vmax, initial_value, current_value, target_value):
     owner.delta_time = ctime - owner.start_time
     if owner.delta_time > 300:
         owner.action_count = [0]*7
@@ -264,6 +264,7 @@ class DQNAgent:
             act_values = self.model.predict([state, self.mask_actions, np.expand_dims(proprioception, 0)])
             action = np.argmax(act_values[0])
             self.update_internal(is_randomic)
+            self.last_act_values = act_values[0]
             return action
 
 
