@@ -12,9 +12,10 @@ import gym
 import io
 import MazeWorld
 import datetime
-
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 agent = Agent( (10, 10), 7, 2)
-agent.load("model5000")
+agent.load("model6000")
 agent.epsilon_decay = 0
 agent.epsilon = 0
 agent.epsilon_min = 0
@@ -30,7 +31,7 @@ LOSS = 0.0
 RENDER = False
 REFRESH_MODEL_NUM = 10000
 N_RANDOM_STEPS = 50000
-MAX_EPSODES = 5
+MAX_EPSODES = 100
 NO_OP_STEPS = 2
 FRAME_SKIP = 4
 NOOP_ACTION = [0,1,6]

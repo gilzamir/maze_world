@@ -12,8 +12,12 @@ IDX_EPISODE_SCORE = 3
 IDX_STEPS_NB = 7
 IDX_GSTEPS_NB = 10
 IDX_LOSS = 13
+IDX_MINX = 16
+IDX_X = 17
+IDX_MAXX = 18
 
-IDX_NAME = {'score': IDX_EPISODE_SCORE, 'loss': IDX_LOSS, 'steps': IDX_STEPS_NB}
+
+IDX_NAME = {'score': IDX_EPISODE_SCORE, 'loss': IDX_LOSS, 'steps': IDX_STEPS_NB, 'varx': IDX_X, 'minx': IDX_MINX, 'maxx':IDX_MAXX}
 
 def file_name_comparator(x):
 	x = os.path.basename(x)
