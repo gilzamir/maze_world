@@ -15,7 +15,8 @@ import datetime
 
 agent = Agent( (10, 10), 7, 2)
 agent.front2back()
-agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/1000000)
+agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/2000000)
+agent.epsilon_min = 0.01
 
 def pre_processing(observe):
     observe = np.array(observe)
@@ -86,7 +87,7 @@ for i in range(MAX_EPSODES):
         next_state = np.append(next_state, initial_state[:, :(FRAME_SKIP-1), :, :], axis=1)
 
         dreward = np.clip(reward, -1.0, 1.0)
-        reward = np.clip(reward + 0.0001 * baredom_value, -1.0, 1.0)
+        reward = np.clip(0.995 * reward + 0.005 * baredom_value, -1.0, 1.0)
   
         score += reward
         dscore += dreward 

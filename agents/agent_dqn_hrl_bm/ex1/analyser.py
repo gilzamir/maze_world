@@ -33,6 +33,7 @@ def plot_data(files, metric, samples, xlabel='x', ylabel='y', legend='legend', i
 	avg = 0.0
 	count = 0
 	files.sort(key=file_name_comparator)
+	counted_samples = 0
 	for ff in files:
 		arq = open(ff, 'r')
 		
@@ -43,8 +44,10 @@ def plot_data(files, metric, samples, xlabel='x', ylabel='y', legend='legend', i
 				gs = int( line[IDX_EPISODE_NB][0:-1] )
 				score = float(line[metric][0:-1])
 				avg += score 
+				counted_samples += 1
 				if gs % samples == 0 and gs > 0 and (i < 0 or gs >= i) and (f < 0 or gs <= f):
-					y.append(avg/samples)
+					y.append(avg/counted_samples)
+					counted_samples = 0
 					avg = 0.0
 					x.append(idx)
 					idx += 1

@@ -149,16 +149,23 @@ class Environment(gym.Env):
             if wasPickUpNear and ACTION_MEANING[action] == "PICKUP":
                 reward += pickUpValue
                 get_pickup = True
-
+#            string msg = life + ";" + energy + ";" + score + ";" + (forceDone ? 1 : 0) + ";" +
+                    (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue()) 
+                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z;
         lives = info[0]
         self.nlives = lives
         energy = info[1]
         score = info[2]
-        done = info[-3]
-        isPickUpNear = True if (info[-2] == 1 and not get_pickup) else False
-        nearPickUpValue = info[-1]
+        done = info[3]
+        isPickUpNear = True if (info[4] == 1 and not get_pickup) else False
+        nearPickUpValue = info[5]
+        orientation = info[6]
+        position = np.zeros(3)
+        position[0] = info[7]
+        position[1] = info[8]
+        position[2] = info[9]
 
-        infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score}
+        infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score, 'orientation': orientation, 'position': position}
         self.last_frame = frame
         return frame, reward, done, infos
         

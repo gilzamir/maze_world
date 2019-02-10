@@ -53,7 +53,6 @@ namespace bworld
 
         public Camera m_camera;
 
-
         // Use this for initialization
         void Start()
         {
@@ -79,6 +78,7 @@ namespace bworld
                     "Warning: no main camera found. Third person character needs a Camera tagged \"MainCamera\", for camera-relative controls.", gameObject);
                 // we use self-relative controls in this case, which probably isn't what the user wants, but hey, we warned them!
             }
+
             // get the third person character ( this should never be null due to require component )
             character = GetComponent<ThirdPersonCharacter>();
             sensor = new PlayerRemoteSensor();
@@ -426,7 +426,7 @@ namespace bworld
 
         private static Ray[,] raysMatrix = null;
         private static int[,] viewMatrix = null;
-        private Vector3 fw1 = new Vector3(), fw2 = new Vector3();
+        private Vector3 fw1 = new Vector3(), fw2 = new Vector3(), fw3 = new Vector3();
 
         private static PlayerRemoteSensor currentPlayer = null;
 
@@ -451,6 +451,7 @@ namespace bworld
 
             m_camera = cam;
             this.player = player;
+            fw3 = m_camera.transform.forward;
 
             playerSceneLogic = player.GetComponent<PlayerLogicScene>();
 
@@ -497,8 +498,15 @@ namespace bworld
                 image = currentPlayer.currentFrame;
             }
 
+            Vector3 to = PlayerRemoteSensor.currentPlayer.m_camera.transform.forward;
+            float cosang = Vector3.Dot(PlayerRemoteSensor.currentPlayer.fw3, to);
+            float angulo = Mathf.Acos(cosang);
+
+            Vector3 pos = PlayerRemoteSensor.currentPlayer.m_camera.transform.position;
+
             string msg = life + ";" + energy + ";" + score + ";" + (forceDone ? 1 : 0) + ";" +
-                    (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue());
+                    (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue()) 
+                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z;
 
             char[] cmsg = msg.ToCharArray();
             char[] fmsg = cmsg;
