@@ -8,17 +8,18 @@ public class MazeSceneLogic : MonoBehaviour {
     private const int TARGET_POSITIONS_LENGHT = 10;
     private const string TARGET_NAME = "GoldKey";
     private const int PICKUPMAP_SIZE = 80;
-
     private const float BAD_PICKUP_CHANCE = 0.4f;
 
     private float pickUpShift = -0.5f;
     private float targetPositionShifit = -2;
+    private int level = 0;
 
-    private Vector3[] targetPositions = new Vector3[]{ new Vector3(476f, -138.43f, 15f), new Vector3(37, -138.43f, 15f),
-                                                       new Vector3(37, -138.43f, 462f), new Vector3(484, -138.43f, 462f),
-                                                       new Vector3(486, -138.43f, 431f), new Vector3(486, -138.43f, 241),
-                                                       new Vector3(262, -138.43f, 208), new Vector3(262, -138.43f, 172),
-                                                       new Vector3(485, -138.43f, 172), new Vector3(40, -138.43f, 172)};
+    private Vector3[] targetPositions = new Vector3[]{ new Vector3(262, -138.43f, 425), new Vector3(262, -138.43f, 208),
+                                                       new Vector3(293f, -138.43f, 398f), new Vector3(293, -138.43f, 368f),
+                                                       new Vector3(231, -138.43f, 368f), new Vector3(260, -138.43f, 464f),
+                                                       new Vector3(350, -138.43f, 463), new Vector3(40, -138.43f, 172),
+                                                       new Vector3(486, -138.43f, 241), new Vector3(486, -138.43f, 431f),
+                                                       new Vector3(262, -138.43f, 172)};
 
     private float[] pickUpMap = new float[]
     {
@@ -126,8 +127,7 @@ public class MazeSceneLogic : MonoBehaviour {
 
     public static void Reset()
     {
-        int targetPosition = UnityEngine.Random.Range(0, 9);
-        // targetPosition = 6;
+        int targetPosition = ConfigureSceneScript.game_level;
         GameObject target = GameObject.Find(TARGET_NAME);
         instance.backedVector3.x = instance.targetPositions[targetPosition].x;
         instance.backedVector3.y = instance.targetPositions[targetPosition].y += instance.targetPositionShifit;

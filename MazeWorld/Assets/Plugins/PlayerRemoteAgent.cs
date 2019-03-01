@@ -492,7 +492,7 @@ namespace bworld
         {
             if (currentPlayer == null) return;
 
-            const int MSG_SIZE = 50;
+            const int MSG_SIZE = 70;
             if (image == null)
             {
                 image = currentPlayer.currentFrame;
@@ -506,7 +506,7 @@ namespace bworld
 
             string msg = life + ";" + energy + ";" + score + ";" + (forceDone ? 1 : 0) + ";" +
                     (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue()) 
-                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z;
+                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z + ";" + (playerSceneLogic.IsWithKey() ? 1 : 0);
 
             char[] cmsg = msg.ToCharArray();
             char[] fmsg = cmsg;

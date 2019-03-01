@@ -111,8 +111,7 @@ class Environment(gym.Env):
                 frame = np.reshape(m, (self.vresolution, self.hresolution))
             except Exception:
                 frame = np.zeros((self.vresolution, self.hresolution))
-
-        perception = [float(t) for t in p.strip().split(';')]
+        perception = [float(t.replace(',', '.')) for t in p.strip().split(';')]
         return (perception,  frame)
 
     def _get_one_step(self, action):
@@ -149,9 +148,7 @@ class Environment(gym.Env):
             if wasPickUpNear and ACTION_MEANING[action] == "PICKUP":
                 reward += pickUpValue
                 get_pickup = True
-#            string msg = life + ";" + energy + ";" + score + ";" + (forceDone ? 1 : 0) + ";" +
-                    (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue()) 
-                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z;
+        
         lives = info[0]
         self.nlives = lives
         energy = info[1]
@@ -164,8 +161,9 @@ class Environment(gym.Env):
         position[0] = info[7]
         position[1] = info[8]
         position[2] = info[9]
+        isWithKey = info[10]
 
-        infos = {'lives': lives, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score, 'orientation': orientation, 'position': position}
+        infos = {'lives': lives, 'isWithKey': isWithKey, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score, 'orientation': orientation, 'position': position}
         self.last_frame = frame
         return frame, reward, done, infos
         

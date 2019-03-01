@@ -82,6 +82,11 @@ namespace bworld
             return 0;
         }
 
+        public virtual bool IsWithKey()
+        {
+            return false;
+        }
+
         public virtual void getPickUp()
         {
 

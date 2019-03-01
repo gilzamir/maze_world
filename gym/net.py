@@ -6,7 +6,7 @@ import sys
 
 
 class NetCon:
-    def __init__(self, host="127.0.0.1", bs=4000):
+    def __init__(self, host="127.0.0.1", bs=5000):
         self.ACT_PORT = 8870
         self.PERCEPT_PORT = 8890
         self.HOST = host
@@ -62,7 +62,7 @@ class NetCon:
         data = bytearray(self.PERCEPT_BUFFER_SIZE)
         try:
             data, _ = self.UDP.recvfrom(self.PERCEPT_BUFFER_SIZE)
-            return (data[0:50], data[50::])
+            return (data[0:70], data[70::])
         except:
             #e = sys.exc_info()[1]
             #print("Error: %s\n" % e)

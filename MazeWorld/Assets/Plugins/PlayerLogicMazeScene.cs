@@ -29,7 +29,7 @@ namespace bworld
         public Text energyText;
         public Text flagsText;
 
-        private bool isWithGoldSphere;
+        private bool isWithKey;
         private bool isInTeletransporter;
         private bool isNearOfFlag;
         private bool isNearOfPickUp;
@@ -84,7 +84,7 @@ namespace bworld
 
         public static void Reset()
         {
-            instance.isWithGoldSphere = false;
+            instance.isWithKey = false;
             instance.isInTeletransporter = false;
             instance.SetDone(false);
             instance.isNearOfFlag = false;
@@ -143,7 +143,7 @@ namespace bworld
             else if (other.gameObject.CompareTag("Target"))
             {
                 count = count + MISSION_ACCOMPLISHED;
-                isWithGoldSphere = true;
+                isWithKey = true;
                 other.gameObject.SetActive(false);
                 trofeuStatusDisplay.SetActive(true);
                 count += TARGET_VALUE;
@@ -160,6 +160,11 @@ namespace bworld
                 nearFlag = other.gameObject;
                 isNearOfFlag = true;
             }
+        }
+
+        public override bool IsWithKey()
+        {
+            return this.isWithKey;
         }
 
         override public void releaseFlag()
@@ -242,7 +247,7 @@ namespace bworld
 
         void SetCountText()
         {
-            if (energy > 0 && isWithGoldSphere && isInTeletransporter && !IsDone())
+            if (energy > 0 && isWithKey && isInTeletransporter && !IsDone())
             {
                 winText.text = " You Win!!!";
                 btnRestart.SetActive(true);

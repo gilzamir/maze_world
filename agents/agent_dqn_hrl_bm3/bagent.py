@@ -132,11 +132,10 @@ class BehavioralEngine:
             return 0.0  
 
 class BrainFunction:
-    def __init__(self, owner, model_builder, output_size, mem_size = 20000):
+    def __init__(self, model_builder, input_size, input_shapes, output_shape, mem_size = 20000, gamma = 0.99):
         self.psize = 0
         self.nsize = 0
         self.ntsize = 0
-        self.agent = owner
         self.model = model_builder()
         self.model._make_predict_function()
         self.model._make_test_function()
@@ -148,8 +147,13 @@ class BrainFunction:
         self.positive_memory = RingBuf(mem_size)
         self.negative_memory = RingBuf(mem_size)
         self.neutral_memory = RingBuf(mem_size)
+        self.input_shapes = input_shapes
+        self.output_shape = output_shape
+        self.input_size = input_size
+        self.gamma = gamma
 
-    def train(self, batch_size, postask=None):
+
+    def train_continue(self, batch_size):
         p_size = min(self.psize, batch_size)
         n_size = min(self.nsize, batch_size)
         nt_size = min(self.ntsize, batch_size)
@@ -163,52 +167,101 @@ class BrainFunction:
         random.shuffle(minibatch)
         batch_size = len(minibatch)
 
-        states = np.zeros(
-            (batch_size, self.agent.skip_frames, self.agent.state_size[0], self.agent.state_size[1]))
-
-        proprioceptions = np.zeros( (batch_size, self.agent.proprioception_size + self.agent.nb_behavior * 3) )
-
-        next_states = np.zeros(
-            (batch_size, self.agent.skip_frames, self.agent.state_size[0], self.agent.state_size[1]))
-
-
-        next_proprioceptions = np.zeros( (batch_size, self.agent.proprioception_size + self.agent.nb_behavior * 3) )
+        inputs = []
+        next_inputs = []
+        for shape in self.input_shapes:
+            inputs.append(np.zeros((batch_size, ) + shape))
+            next_inputs.append(np.zeros((batch_size, ) + shape))
 
         actions = []
         rewards = []
         dones = []
+        targets = np.zeros((batch_size, self.output_shape[0]))
 
+        idx = 0
+        for idx, val in enumerate(minibatch):
+            for i in range(self.input_size):
+                inputs[i][idx] = val[i]
+            f = 2 * self.input_size
+            k = 0
+            for i in range(self.input_size, f):
+                next_inputs[k][idx] = val[i]
+                k += 1
+            actions.append(val[f])
+            rewards.append(val[f+1])
+            dones.append(val[f+2])
+
+        next_Q_values = self.back_model.predict(next_inputs)
+
+        for i in range(batch_size):
+            if dones[i]:
+                targets[i] = np.array(rewards[i]) * self.output_shape[0]
+            else:
+                #print(np.array(rewards[i]) * self.output_shape[0] + self.gamma * np.array(next_Q_values[i]))
+                targets[i] = np.array(rewards[i]) * self.output_shape[0] + self.gamma * np.array(next_Q_values[i])
+                
+
+        h = self.model.fit(
+            inputs, targets, epochs=1, batch_size=batch_size, verbose=0)
+
+        last_loss = h.history['loss'][0]
+        return last_loss
+
+    def train(self, batch_size):
+        p_size = min(self.psize, batch_size)
+        n_size = min(self.nsize, batch_size)
+        nt_size = min(self.ntsize, batch_size)
+        minibatch = []
+        if (p_size > 0):
+            minibatch += sample(self.positive_memory, p_size)
+        if (n_size > 0):
+            minibatch += sample(self.negative_memory, n_size)
+        if (nt_size > 0):
+            minibatch += sample(self.neutral_memory, nt_size)
+        random.shuffle(minibatch)
+        batch_size = len(minibatch)
+        
+        inputs = []
+        next_inputs = []
+        for shape in self.input_shapes:
+            inputs.append(np.zeros((batch_size, ) + shape))
+            next_inputs.append(np.zeros((batch_size, ) + shape))
+
+        actions = []
+        rewards = []
+        dones = []
         targets = np.zeros((batch_size,))
 
         idx = 0
         for idx, val in enumerate(minibatch):
-            states[idx] = val[0]
-            next_states[idx] = val[4]
-            actions.append(val[2])
-            rewards.append(val[3])
-            dones.append(val[6])
-            proprioceptions[idx] = val[1]
-            next_proprioceptions[idx] = val[5]
+            for i in range(self.input_size):
+                inputs[i][idx] = val[i]
+            f = 2 * self.input_size
+            k = 0
+            for i in range(self.input_size, f):
+                next_inputs[k][idx] = val[i]
+                k += 1
+            actions.append(val[f])
+            rewards.append(val[f+1])
+            dones.append(val[f+2])
 
-        actions_mask = np.ones((batch_size, self.agent.action_size))
-        next_Q_values = self.back_model.predict([next_states, actions_mask, next_proprioceptions])
+        actions_mask = np.ones((batch_size, self.output_shape[0]))
+        next_Q_values = self.back_model.predict(next_inputs +  [actions_mask])
 
         for i in range(batch_size):
             if dones[i]:
                 targets[i] = rewards[i]
             else:
-                targets[i] = rewards[i] + self.agent.gamma * np.amax(next_Q_values[i])
+                targets[i] = rewards[i] + self.gamma * np.amax(next_Q_values[i])
 
-        action_one_hot = get_one_hot(actions, self.agent.action_size)
+        action_one_hot = get_one_hot(actions, self.output_shape[0])
         target_one_hot = action_one_hot * targets[:, None]
 
         h = self.model.fit(
-            [states, action_one_hot, proprioceptions], target_one_hot, epochs=1, batch_size=batch_size, verbose=0)
+            inputs + [action_one_hot], target_one_hot, epochs=1, batch_size=batch_size, verbose=0)
 
-        self.last_loss = h.history['loss'][0]
-        if postask:
-            postask(self, self.last_loss)
-        return self.last_loss
+        last_loss = h.history['loss'][0]
+        return last_loss
 
     def predict(self, input_array):
         return self.model.predict(input_array)
@@ -234,22 +287,19 @@ class BrainFunction:
     def back2front(self):
         self.model.set_weights(self.back_model.get_weights())
 
-    def remember(self, state, proprioception, action, reward, next_state, next_proprioception, done):
+    def remember(self, inputs, action, reward, next_inputs, done):
         if reward > 0:
-            self.positive_memory.append(
-                (state, proprioception, action, reward, next_state, next_proprioception, done))
+            self.positive_memory.append(inputs +  next_inputs + [action, reward, done])
             self.psize += 1
             if (self.psize > self.positive_memory.maxlen):
                 self.psize = self.positive_memory.maxlen
         elif reward < 0:
-            self.negative_memory.append(
-                (state, proprioception, action, reward, next_state, next_proprioception, done))
+            self.negative_memory.append(inputs +  next_inputs + [action, reward, done])
             self.nsize += 1
             if (self.nsize > self.negative_memory.maxlen):
                 self.nsize = self.negative_memory.maxlen
         else:
-            self.neutral_memory.append(
-                (state, proprioception, action, reward, next_state, next_proprioception, done))
+            self.neutral_memory.append(inputs +  next_inputs + [action, reward, done])
             self.ntsize += 1
             if (self.ntsize > self.neutral_memory.maxlen):
                 self.ntsize = self.neutral_memory.maxlen
@@ -271,7 +321,7 @@ class BrainFunction:
         self.back_model.save_weights(name)
 
 class DQNAgent:
-    def __init__(self, state_size, action_size, proprioception_size=2):
+    def __init__(self, state_size, action_size, proprioception_size=2, goals_size=4):
 
         if type(state_size) == tuple:
             self.state_size = state_size
@@ -280,10 +330,16 @@ class DQNAgent:
         self.proprioception_size = proprioception_size
         self.last_loss = 0.0
         self.action_size = action_size
+        self.goals_size = goals_size
         self.gamma = 0.99	 # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.05
         self.epsilon_decay = 0.99
+
+        self.gepsilon = 1.0  # exploration rate
+        self.gepsilon_min = 0.05
+        self.gepsilon_decay = 0.99
+
         self.learning_rate = 0.00025  # 0.00025
 
         self.skip_frames = 4
@@ -291,18 +347,71 @@ class DQNAgent:
         self.loss = 0.0
         self.count_loss = 1
         self.global_step = 0
+        self.gglobal_step = 0
         self.contextual_actions = [0, 1, 2, 3, 4, 5, 6, 7]
         self.epoch = 0
         self.mask_actions = np.ones(self.action_size).reshape(1, self.action_size)
+        self.mask_goals = np.ones(self.goals_size).reshape(1, self.goals_size)
         self.replay_is_running = False
         self.graph = tf.get_default_graph()
         self.session = keras.backend.get_session()
         self.nb_behavior = 1
 
-        self.brain = BrainFunction(self, self._build_model, 10000)
+        ''' 
+            goals:
+                0 - survive (keeping energy)
+                1 - explore
+                2 - homeostatic
+                3 - score
+        '''
+        self.goal_searcher = BrainFunction(model_builder = self._main_build_model, input_size = 2, 
+                                    input_shapes = [(self.skip_frames, self.state_size[0], self.state_size[1]), (5,)],
+                                    output_shape = (4,)
+                                )
 
-        self.baredom   = BehavioralRange("baredom", self, 0.0, 0.1, 1.0, fn_control=baredom_control)
+        #No visual input information: touch, object value, min_var, max_var, var, x, y, z, angle, goal
+        self.performer = BrainFunction(model_builder = self._build_model, input_size = 2,
+                                    input_shapes=[(self.skip_frames, self.state_size[0], self.state_size[1]), (13,)],
+                                    output_shape=[self.action_size])
+
+        self.baredom = BehavioralRange("baredom", self, 0.0, 0.1, 1.0, fn_control=baredom_control)
         self.last_action = -1
+        self.prev_position = None
+        self.position = None
+        self.energy = 0
+        self.baredom_value = 0
+        self.score = 0
+        self.isWithKey = 0
+        self.sum_of_rewards = 0
+
+    def r_get_foods(self):
+        v = np.clip(self.sum_of_rewards, -1.0, 1.0)
+        self.sum_of_rewards = 0.0
+        return v
+
+    def r_explore(self):
+        v = abs(self.prev_position[0] - self.position[0]) + abs(self.prev_position[1] - self.position[1]) + abs(self.prev_position[2] - self.position[2])
+        return np.tanh(v)
+
+    def r_homeostatic(self):
+        return self.baredom_value
+
+    def r_get_key(self):
+        if self.isWithKey == 1:
+            return 1
+        else:
+            return 0
+         
+    def get_rewards(self):
+        return np.array([self.r_get_foods(), self.r_explore(), self.r_homeostatic(), self.r_get_key()])
+
+    def get_goal_status(self):
+        return np.array([ 
+                            1 if self.energy > 5 else 0, 
+                            np.clip(self.r_explore(), 0.0, 1.0),
+                            1 if self.baredom_value <= self.baredom.max and self.baredom_value >= self.baredom.min else 0,
+                            1 if self.isWithKey else 0
+                        ])
 
     def reset(self, is_new_epoch=True):
         if is_new_epoch:
@@ -311,6 +420,7 @@ class DQNAgent:
         self.action_count = [0]*7
         self.start_time = 0
         self.step = 0
+        self.gstep = 0
         self.baredom.current_value = 0
         self.baredom.initial_value = 0
         self.baredom.min = np.random.random() * 0.90
@@ -321,7 +431,7 @@ class DQNAgent:
         ACTION_SIZE = self.action_size
         # With the functional API we need to define the inputs.
         frames_input = layers.Input(ATARI_SHAPE, name='frames')
-        propriception_input = layers.Input((self.proprioception_size + self.nb_behavior * 3,), name='proprioception')
+        propriception_input = layers.Input((self.proprioception_size,), name='proprioception')
         actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
         normalize = layers.Lambda( lambda x : x/6.0) (frames_input)
         reshape = layers.Flatten()(normalize)
@@ -330,11 +440,32 @@ class DQNAgent:
         hidden2 = layers.Dense(128)(proprioception_hidden)
         output = layers.Dense(ACTION_SIZE, activation='relu')(hidden2)
         filtered_output = layers.Multiply(name='QValue')([output, actions_input])
-        model = Model(inputs=[frames_input, actions_input, propriception_input], outputs=filtered_output)
+        model = Model(inputs=[frames_input,  propriception_input, actions_input], outputs=filtered_output)
         model.summary()
         optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
         
         model.compile(optimizer, loss='mse')
+        return model
+
+    def _main_build_model(self):
+        ATARI_SHAPE = (self.skip_frames, self.state_size[0], self.state_size[1])  # input image size to model
+        ACTION_SIZE = 4
+        # With the functional API we need to define the inputs.
+        frames_input = layers.Input(ATARI_SHAPE, name='frames')
+        propriception_input = layers.Input((5,), name='proprioception')
+        actions_input = layers.Input((ACTION_SIZE,), name='action_mask')
+        normalize = layers.Lambda( lambda x : x/6.0) (frames_input)
+        reshape = layers.Flatten()(normalize)
+        hidden = layers.Dense(128)(reshape)
+        proprioception_hidden = layers.Concatenate()([hidden, propriception_input])
+        hidden2 = layers.Dense(64)(proprioception_hidden)
+        output = layers.Dense(ACTION_SIZE, activation='relu')(hidden2)
+        filtered_output = layers.Multiply(name='QValue')([output, actions_input])
+        model = Model(inputs=[frames_input, propriception_input, actions_input], outputs=filtered_output)
+        model.summary()
+        optimizer = RMSprop(lr=self.learning_rate, rho=0.95, epsilon=0.01)
+        
+        model.compile(optimizer, loss='categorical_crossentropy')
         return model
 
     def update_internal(self, is_randomic=False):
@@ -346,6 +477,15 @@ class DQNAgent:
             else:
                 self.epsilon = self.epsilon_min
 
+    def update_goal_internal(self, is_randomic=False):
+        self.gstep += 1
+        self.gglobal_step += 1
+        if not is_randomic:
+            if self.gepsilon > self.gepsilon_min:
+                self.gepsilon -= self.gepsilon_decay
+            else:
+                self.gepsilon = self.gepsilon_min
+
     def act(self, state, is_randomic = False, proprioception=[0,0,0,0,0]):
         action = 0
         p = np.random.rand()
@@ -353,8 +493,24 @@ class DQNAgent:
             self.update_internal(is_randomic)
             return np.random.choice(np.arange(0, self.action_size))
         else:
-            act_values = self.brain.predict([state, self.mask_actions, np.expand_dims(proprioception, 0)])
+            act_values = self.performer.predict([state, np.expand_dims(proprioception, 0), self.mask_actions])
             action = np.argmax(act_values[0])
             self.update_internal(is_randomic)
             self.last_act_values = act_values[0]
             return action
+
+    def goal_select(self, state, is_randomic = False, proprioception=[0,0,0,0,0]):
+        goal = 0
+        p = np.random.rand()
+        if is_randomic or p <= self.gepsilon:
+            self.update_goal_internal(is_randomic)
+            goal = np.random.choice(np.arange(0, self.goals_size))
+            self.last_goals_values = [0]*self.goals_size
+            self.last_goals_values[goal] = 1.0
+            return goal
+        else:
+            goal_values = self.goal_searcher.predict([state, np.expand_dims(proprioception, 0), self.mask_goals])
+            goal = np.argmax(goal_values[0])
+            self.update_goal_internal(is_randomic)
+            self.last_goals_values = goal_values[0].tolist()
+            return goal

@@ -12,15 +12,18 @@ public class ConfigureSceneScript : MonoBehaviour
 
     public InputField inPort;
     public InputField outPort;
+    public InputField inGameLevel;
     public Toggle useRayCast;
     private bool noconfig = false;
     public static int inputPort = 8870;
     public static int outputPort = 8890;
     public static bool useRayCasting;
+    public static int game_level = 0;
     public void OnMouseClick()
     {
         inputPort  = int.Parse(inPort.text);
         outputPort = int.Parse(outPort.text);
+        game_level = int.Parse(inGameLevel.text);
         useRayCasting = useRayCast.isOn;
         SceneManager.LoadScene("maze");
     }
@@ -51,6 +54,11 @@ public class ConfigureSceneScript : MonoBehaviour
                     useRayCasting = false;
                 }
 
+                if (args[i] == "--game_level")
+                {
+                    game_level = int.Parse(args[i + 1]);
+                }
+
                 noconfig |= args[i] == "--noconfig";
             }
             if (args.Length > 0)
@@ -66,6 +74,7 @@ public class ConfigureSceneScript : MonoBehaviour
             }
             inPort.text = inputPort.ToString();
             outPort.text = outputPort.ToString();
+            inGameLevel.text = game_level.ToString();
             if (useRayCasting)
             {
                 useRayCast.isOn = true;
