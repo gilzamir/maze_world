@@ -45,6 +45,7 @@ FRAME_SKIP = 4
 NOOP_ACTION = [0,1,6]
 
 env = gym.make('MazeWorld-v0')
+
 log = open('log0.txt', 'w')
 logg = open('logg.txt', 'w')
 goal_selected = 0
@@ -52,12 +53,16 @@ count_eps = 0
 global_reward = 0.0
 for i in range(MAX_EPSODES):
     frame = env.reset()
+
     if i > 0 and i % 50 == 0:
         log.close()
         log = open('log%d.txt'%(i), 'w')
     
     if RENDER:
         env.render()
+
+    if i > 1000:
+        env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.3, 0.2, 0.15, 0.10, 0.05, 0.05, 0.05, 0.05, 0.05]))
 
     is_done = False
 

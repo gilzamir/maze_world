@@ -33,9 +33,9 @@ class NetCon:
     # ws: apply walk speed.
     # rs: restart
     ##############################################################################################
-    def act(self, fx, fy, speed=0.5, crouch=False, jump=False, l=0.0, r=0.0, u=0.0, d=0.0, ps=False, rf=False, gf=False, ws=True, rs=False, pause=False, resume=False, closefn=False, cmdtype="action"):
+    def act(self, fx, fy, speed=0.5, crouch=False, jump=False, l=0.0, r=0.0, u=0.0, d=0.0, ps=False, rf=False, gf=False, ws=True, rs=False, pause=False, resume=False, closefn=False, cmdtype="action", level=0):
         self.send_command(fx, fy, speed, crouch, jump,
-                     l, r, u, d, ps, rf, gf, ws, rs, pause, resume, closefn, cmdtype)
+                     l, r, u, d, ps, rf, gf, ws, rs, pause, resume, closefn, cmdtype, level)
 
     def close(self):
         self.UDP.close()
@@ -88,9 +88,9 @@ class NetCon:
     # gf: get the pickup.
     # ws: apply walk speed.
     ##############################################################################################
-    def send_command(self, fx, fy, speed, crouch, jump, l, r, u, d, ps, rf, gf, ws, rs=False, pause=False, resume=False, closefn=False, cmdtype="action"):
-        command = "%s;%f;%f;%f;%r;%r;%f;%f;%f;%f;%r;%r;%r;%r;%r;%r;%r;%r" % (
-            cmdtype,fx, fy, speed, crouch, jump, l, r, u, d, ps, rf, gf, ws, rs, pause, resume, closefn)
+    def send_command(self, fx, fy, speed, crouch, jump, l, r, u, d, ps, rf, gf, ws, rs=False, pause=False, resume=False, closefn=False, cmdtype="action", level=0):
+        command = "%s;%f;%f;%f;%r;%r;%f;%f;%f;%f;%r;%r;%r;%r;%r;%r;%r;%r;%d" % (
+            cmdtype,fx, fy, speed, crouch, jump, l, r, u, d, ps, rf, gf, ws, rs, pause, resume, closefn, level)
         dest = (self.HOST, self.ACT_PORT)
         self.UDP.sendto(command.encode(encoding="utf-8"), dest)
     

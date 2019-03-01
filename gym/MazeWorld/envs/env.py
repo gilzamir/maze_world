@@ -31,6 +31,7 @@ class Environment(gym.Env):
     def __init__(self, useRayCasting=True):
         self.net = ne.NetCon()        
         self.ale = AleWrapper(self)
+        self.game_level = 0
         while not self.net.open():
             self.net.ACT_PORT += 1
             self.net.PERCEPT_PORT += 1
@@ -59,14 +60,16 @@ class Environment(gym.Env):
         cmd = None
         systemname = platform.system()
         if systemname=='Windows':
-            cmd = 'start %s -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
+            cmd = 'start %s -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d --game_level %d'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT, self.game_level)
         elif systemname=='Darwin':
-            cmd = 'open -a %s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
+            cmd = 'open -a %s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d --game_level %d &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT, self.game_level)
         else:
-            cmd = '%s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT)
+            cmd = '%s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  --game_level %d &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT, self.game_level)
         os.system(cmd)
 
-
+    def set_level(self, level):
+        self.game_level = level
+        actions.set_level(self.net, self.game_level)
 
     def get_action_meanings(self):
         return [ACTION_MEANING[i] for i in self._action_set]

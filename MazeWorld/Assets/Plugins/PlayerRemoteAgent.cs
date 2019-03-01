@@ -290,6 +290,11 @@ namespace bworld
                                     Application.Quit();
                                 }
                             }
+                            
+                            if (tokens.Length > 18)
+                            {
+                                ConfigureSceneScript.game_level = int.Parse(tokens[18].Trim());
+                            }
                         } 
 
                         socket.BeginReceive(new System.AsyncCallback(ReceiveData), udpSocket);

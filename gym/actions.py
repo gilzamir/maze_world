@@ -16,8 +16,11 @@
 # ws: apply walk speed. 
 # rs: restart
 ##############################################################################################
+
+game_level = 0
+
 def walk(net, speed=1, cmdtype="action"):
-	net.act(0.0, speed, cmdtype=cmdtype)
+	net.act(0.0, speed, cmdtype=cmdtype, level=game_level)
 
 def run(net, cmdtype="action"):
 	walk(net, 15, cmdtype=cmdtype)
@@ -26,43 +29,48 @@ def noop(net, cmdtype="action"):
     net.update_sensor()
 
 def walk_in_circle(net, speed=1, cmdtype="action"):
-	net.act(speed, speed, cmdtype=cmdtype)
+	net.act(speed, speed, cmdtype=cmdtype, level=game_level)
 
 def crouch(net, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, True, False, 0.0, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, True, False, 0.0, cmdtype=cmdtype, level=game_level)
 
 def jump(net, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, True, 0.0, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, True, 0.0, cmdtype=cmdtype, level=game_level)
 	
 def see_around_by_left(net, speed=1, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, speed, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, speed, cmdtype=cmdtype, level=game_level)
 	
 def see_around_by_right(net, speed=1, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, speed, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, speed, cmdtype=cmdtype, level=game_level)
 	
 def see_around_up(net, speed=1, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, speed, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, speed, cmdtype=cmdtype, level=game_level)
 	
 def see_around_down(net, speed=1, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, speed, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, speed, cmdtype=cmdtype, level=game_level)
 
 def push(net, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, True, cmdtype=cmdtype, level=game_level)
 	
 def reset_state(net, cmdtype="control"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, True, cmdtype=cmdtype, level=game_level)
 
 def get_pickup(net, cmdtype="action"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, True, cmdtype=cmdtype, level=game_level)
 
 def restart(net, cmdtype="control"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, True, cmdtype=cmdtype, level=game_level)
 
 def pause(net, cmdtype="control"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, True, cmdtype=cmdtype, level=game_level)
 
 def resume(net, cmdtype="control"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, False, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, False, True, cmdtype=cmdtype, level=game_level)
 
 def close(net, cmdtype="control"):
-	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, False, False, True, cmdtype=cmdtype)
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, False, False, True, cmdtype=cmdtype, level=game_level)
+
+def set_level(net, level):
+	global game_level
+	game_level = level
+	net.act(0.0, 0.0, 0.0, False, False, 0.0, 0.0, 0.0, 0.0, False, False, False, True, False, False, False, False, cmdtype='action', level=game_level)

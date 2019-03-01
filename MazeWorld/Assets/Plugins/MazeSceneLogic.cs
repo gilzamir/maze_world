@@ -12,7 +12,6 @@ public class MazeSceneLogic : MonoBehaviour {
 
     private float pickUpShift = -0.5f;
     private float targetPositionShifit = -2;
-    private int level = 0;
 
     private Vector3[] targetPositions = new Vector3[]{ new Vector3(262, -138.43f, 425), new Vector3(262, -138.43f, 208),
                                                        new Vector3(293f, -138.43f, 398f), new Vector3(293, -138.43f, 368f),
