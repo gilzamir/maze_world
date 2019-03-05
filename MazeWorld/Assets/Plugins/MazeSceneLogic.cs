@@ -108,6 +108,8 @@ public class MazeSceneLogic : MonoBehaviour {
 
     public GameObject pickUpGood;
     public GameObject pickUpBad;
+
+    public static GameObject target;
     
     private Vector3 backedVector3 = new Vector3();
 
@@ -127,7 +129,7 @@ public class MazeSceneLogic : MonoBehaviour {
     public static void Reset()
     {
         int targetPosition = ConfigureSceneScript.game_level;
-        GameObject target = GameObject.Find(TARGET_NAME);
+        target = GameObject.Find(TARGET_NAME);
         instance.backedVector3.x = instance.targetPositions[targetPosition].x;
         instance.backedVector3.y = instance.targetPositions[targetPosition].y += instance.targetPositionShifit;
         instance.backedVector3.z = instance.targetPositions[targetPosition].z;

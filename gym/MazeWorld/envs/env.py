@@ -12,6 +12,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import os
 import platform
+from tkinter import *
 
 ACTIONS = np.array([actions.noop, actions.walk, actions.walk_in_circle, actions.run, actions.crouch, actions.jump, actions.see_around_by_left, 
 			actions.see_around_by_right, actions.see_around_up, actions.see_around_down, actions.reset_state, 
@@ -25,6 +26,20 @@ class AleWrapper:
     
     def lives(self):
         return self.env.nlives
+
+class Application:
+    def __init__(self, master = None):
+        self.frame = Frame(master)
+        self.frame.pack()
+        self.msg = Label(self.frame, text="Primeiro widget")
+        self.msg["font"] = ("Verdana", "10", "italic", "bold")
+        self.msg.pack ()
+        self.sair = Button(self.frame)
+        self.sair["text"] = "Sair"
+        self.sair["font"] = ("Calibri", "10")
+        self.sair["width"] = 5
+        self.sair["command"] = self.frame.quit
+        self.sair.pack()
 
 class Environment(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -66,6 +81,8 @@ class Environment(gym.Env):
         else:
             cmd = '%s --args -screen-fullscreen 0 -screen-height 640 -screen-width 480 --noconfig --input_port %d --output_port %d  --game_level %d &'%(path, self.net.ACT_PORT, self.net.PERCEPT_PORT, self.game_level)
         os.system(cmd)
+        self.window = Tk()
+        self.application = None
 
     def set_level(self, level):
         self.game_level = level
@@ -135,6 +152,9 @@ class Environment(gym.Env):
         return frame
 
     def render(self, mode='human', close=False):
+        if self.application == None:
+            self.application = Application(self.window)
+        self.window.update()
         return self.last_frame
 
     def _prepare_data(self, info, frame, action):
@@ -165,8 +185,12 @@ class Environment(gym.Env):
         position[1] = info[8]
         position[2] = info[9]
         isWithKey = info[10]
+        target_pos = np.zeros(3)
+        target_pos[0] = info[11]
+        target_pos[1] = info[12]
+        target_pos[2] = info[13]  
 
-        infos = {'lives': lives, 'isWithKey': isWithKey, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score, 'orientation': orientation, 'position': position}
+        infos = {'lives': lives, 'isWithKey': isWithKey, 'energy': energy, 'isPickUpNear': isPickUpNear, 'nearPickUpValue': nearPickUpValue, 'score': score, 'orientation': orientation, 'position': position, 'target_pos': target_pos}
         self.last_frame = frame
         return frame, reward, done, infos
         
@@ -183,6 +207,8 @@ class Environment(gym.Env):
                 ACTIONS[maction](self.net, cmdtype="action ignore frame")
         info, frame = self._get_one_step(maction)
         self.prev_perception = self._prepare_data(info, frame, action)
+        if self.application != None:
+            self.application.msg["text"] = frame
         actions.pause(self.net)
         return self.prev_perception
 

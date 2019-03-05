@@ -62,7 +62,7 @@ class NetCon:
         data = bytearray(self.PERCEPT_BUFFER_SIZE)
         try:
             data, _ = self.UDP.recvfrom(self.PERCEPT_BUFFER_SIZE)
-            return (data[0:70], data[70::])
+            return (data[0:100], data[100::])
         except:
             #e = sys.exc_info()[1]
             #print("Error: %s\n" % e)

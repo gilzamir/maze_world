@@ -12,15 +12,14 @@ import gym
 import io
 import MazeWorld
 import datetime
+from goal_model import Tree, Node, get_next_goals
 
-agent = Agent( (10, 10), 7, 14, 5)
+agent = Agent( (10, 10), 7, 9)
 agent.performer.front2back()
-agent.goal_searcher.front2back()
+
 agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/2000000)
 agent.epsilon_min = 0.01
 
-agent.gepsilon_decay = ((agent.gepsilon - agent.gepsilon_min)/1000)
-agent.gepsilon_min = 0.10
 
 def pre_processing(observe):
     observe = np.array(observe)
@@ -48,9 +47,8 @@ env = gym.make('MazeWorld-v0')
 
 log = open('log0.txt', 'w')
 logg = open('logg.txt', 'w')
-goal_selected = 0
-count_eps = 0
-global_reward = 0.0
+goal_selected = get_next_goals(agent.tree_goals.root)[0].ID
+count_tests = 0
 for i in range(MAX_EPSODES):
     frame = env.reset()
 
@@ -61,13 +59,10 @@ for i in range(MAX_EPSODES):
     if RENDER:
         env.render()
 
-    if i > 2000:
-        env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.3, 0.2, 0.15, 0.10, 0.05, 0.05, 0.05, 0.05, 0.05]))
-
     is_done = False
 
     batch_size = 12
-    agent.reset()
+
     action = 0
     next_state = None
     initial_proprioception = np.array([0, 0, agent.baredom.min, agent.baredom.max, agent.baredom.current_value, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -78,6 +73,7 @@ for i in range(MAX_EPSODES):
         position = info['position']
         if not type(agent.prev_position) == list:
             agent.prev_position = position
+        agent.position = position
         agent.target_position = info['target_pos']
         agent.last_reward = reward
         agent.isWithKey = info['isWithKey']
@@ -85,9 +81,9 @@ for i in range(MAX_EPSODES):
         orientation = info['orientation']
         initial_proprioception = [ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1), agent.baredom.min,
                                      agent.baredom.max, agent.baredom.current_value,  position[0], position[1],
-                                        position[2], orientation] + [0]*agent.goals_size
+                                        position[2], orientation]
         initial_proprioception = np.array(initial_proprioception)
-
+    agent.reset()
     if not env.useRaycasting:
         frame = pre_processing(frame)
 
@@ -96,14 +92,7 @@ for i in range(MAX_EPSODES):
     initial_state = np.reshape([initial_state], (1, agent.skip_frames, env.vresolution, env.hresolution))
     dead = False
     sum_reward = 0
-
-    if agent.gglobal_step == 0:
-        if agent.gglobal_step >= N_RANDOM_STEPS2:
-            goal_selected = agent.goal_select(initial_state, proprioception=initial_proprioception[0:5])
-        else:
-            goal_selected = agent.goal_select(initial_state, True, proprioception=initial_proprioception[0:5])
-            
-        print('GOAL EPISODE %d. GOAL SELECTED: %d.'%(agent.gglobal_step - 1, goal_selected))
+    sum_greward = 0
     while not is_done:
         dead = False
         if agent.global_step >= N_RANDOM_STEPS:
@@ -127,7 +116,7 @@ for i in range(MAX_EPSODES):
         agent.last_reward = last_reward
         
         next_proprioception = [ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1), 
-                                agent.baredom.min, agent.baredom.max, agent.baredom_value] + list(position) + [orientation] + agent.last_goals_values
+                                agent.baredom.min, agent.baredom.max, agent.baredom_value] + list(position) + [orientation]
         
         next_proprioception = np.array(next_proprioception)
 
@@ -138,48 +127,41 @@ for i in range(MAX_EPSODES):
         next_state = np.reshape([next_frame], (1, 1, env.vresolution, env.hresolution))
         next_state = np.append(next_state, initial_state[:, :(FRAME_SKIP-1), :, :], axis=1)
         
-        reward = agent.get_rewards()[goal_selected]
+        greward = agent.get_rewards()[goal_selected]
+
+        agent.prev_dist_to_key = agent.get_dist_to_target()
+        agent.prev_dist_to_gate = agent.get_dist_to_gate()
+
+        reward = 0.95 * greward  + 0.05 *  agent.baredom_value
         reward = np.clip(reward, -1.0, 1.0)
         sum_reward += reward
+        sum_greward += greward
 
-        goal_status = agent.get_goal_status()[goal_selected] 
+        count_tests += 1
+        agent.fitness[goal_selected] += reward
+
+        if count_tests >= agent.MIN_TESTS:
+            count_tests = 0
+            if agent.get_goal_status(goal_selected)==True:
+                agent.tree_goals.map[goal_selected].checked = True
+                goal_selected = get_next_goals(agent.tree_goals.root)[0].ID
+                agent.fitness[goal_selected] = 0.0
+
+                if goal_selected == 2 in [0, 2, 4]:
+                    env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.77, 0.15, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]))
+                else:
+                    env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.2, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05]))
+                agent.epsilon = 0.2
+            else:
+                agent.fitness[goal_selected] = 0.0
 
         end_eps = dead or is_done
-
-        if end_eps:
-            global_reward += np.clip(info['score'], -1.0, 1.0)
-            count_eps += 1
 
         agent.performer.remember( [initial_state, initial_proprioception], action, reward, [next_state, next_proprioception], end_eps)
         
         if random.random() <= 0.005:
-            print("EPISODE: %d. CURRENT GOAL %d. REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f. WALK DIST %f. TARGET APPROX: %f." % (
-                i, goal_selected, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq, agent.get_walk_dist(), agent.get_dist_to_target()))
-
-        if count_eps >= 5 or goal_status == 1:
-
-            if goal_status == 1:
-                if goal_selected == 1:
-                    agent.current_exploration_ratio = 0.0        
-                elif goal_selected == 4:
-                    agent.current_follow_target_ratio = 1000.0
-
-            count_eps = 0
-            global_reward += goal_status
-            global_reward = np.clip(global_reward, -1.0, 1.0)
-            print('**GOAL EPISODE %d. EPS %f. GOAL SELECTED: %d. REWARD %f. LOSS %f'%(agent.gglobal_step, agent.gepsilon, goal_selected, global_reward, LOSS2/agent.gglobal_step))
-            logg.write('GOAL EPISODE %d. EPS: %f. GOAL SELECTED: %d. REWARD %f. LOSS %f'%(agent.gglobal_step, agent.gepsilon, goal_selected, global_reward, LOSS2/agent.gglobal_step))
-            if agent.gglobal_step >= N_RANDOM_STEPS2:
-                goal_selected = agent.goal_select(initial_state, proprioception=initial_proprioception[0:5])
-            else:
-                goal_selected = agent.goal_select(initial_state, True, proprioception=initial_proprioception[0:5])
-
-            agent.goal_searcher.remember([initial_state, initial_proprioception[0:5]], goal_selected, global_reward, [next_state, next_proprioception[0:5]], end_eps)
-            global_reward = 0.0
-            if agent.gglobal_step >=  N_RANDOM_STEPS2:
-                LOSS2 += agent.goal_searcher.train(batch_size)
-                if agent.gglobal_step % REFRESH_MODEL_NUM2 == 0:
-                    agent.goal_searcher.front2back()
+            print("EPISODE: %d. CURRENT GOAL %d. REWARDS: %f %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f. WALK DIST %f. TARGET APPROX: %f." % (
+                i, goal_selected, sum_greward, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq, agent.get_walk_dist(), agent.get_dist_to_target()))
 
         if (agent.global_step >= N_RANDOM_STEPS):
             LOSS += agent.performer.train(batch_size)
@@ -196,15 +178,14 @@ for i in range(MAX_EPSODES):
     agent.prev_position = position
     if (agent.epoch % 1000 == 0):
         agent.performer.save("pmodel%d" % (agent.epoch))
-        agent.goal_searcher.save("smodel%d" %(agent.epoch))
 
     count_loss = agent.step
     if count_loss == 0:
         count_loss = 1
     now = datetime.datetime.now().time()
-    print(">>EPISODE: %d. REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f" % (
-        i, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq))
-    log.write("EPISODE: %d. REWARDS: %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f" % (
-        i, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq))
+    print(">>EPISODE: %d. REWARDS: %f %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f" % (
+        i, sum_greward, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq))
+    log.write("EPISODE: %d. REWARDS: %f %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f" % (
+        i, sum_greward, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq))
     log.flush()
     LOSS = 0.0

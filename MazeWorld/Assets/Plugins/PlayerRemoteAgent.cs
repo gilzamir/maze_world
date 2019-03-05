@@ -497,7 +497,7 @@ namespace bworld
         {
             if (currentPlayer == null) return;
 
-            const int MSG_SIZE = 70;
+            const int MSG_SIZE = 100;
             if (image == null)
             {
                 image = currentPlayer.currentFrame;
@@ -508,10 +508,11 @@ namespace bworld
             float angulo = Mathf.Acos(cosang);
 
             Vector3 pos = PlayerRemoteSensor.currentPlayer.m_camera.transform.position;
-
+            Vector3 tpos = MazeSceneLogic.target.transform.position;
             string msg = life + ";" + energy + ";" + score + ";" + (forceDone ? 1 : 0) + ";" +
                     (playerSceneLogic.IsNearOfPickUp() ? 1 : 0) + ";" + (playerSceneLogic.getNearPickUpValue()) 
-                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z + ";" + (playerSceneLogic.IsWithKey() ? 1 : 0);
+                    + ";" + angulo + ";" + pos.x + ";" + pos.y + ";" +  pos.z + ";" + (playerSceneLogic.IsWithKey() ? 1 : 0) 
+                    + ";" + tpos.x + ";" + tpos.y + ";" + tpos.z;
 
             char[] cmsg = msg.ToCharArray();
             char[] fmsg = cmsg;
