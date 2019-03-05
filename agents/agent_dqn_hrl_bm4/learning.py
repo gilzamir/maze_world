@@ -148,7 +148,7 @@ for i in range(MAX_EPSODES):
                 agent.fitness[goal_selected] = 0.0
 
                 if goal_selected == 2 in [0, 2, 4]:
-                    env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.77, 0.15, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]))
+                    env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.70, 0.09, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03]))
                 else:
                     env.set_level(np.random.choice([0, 1, 2, 3, 4, 5, 6, 7, 8], p=[0.2, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05]))
                 agent.epsilon = 0.2
