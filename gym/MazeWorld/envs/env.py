@@ -57,8 +57,8 @@ class Environment(gym.Env):
     
         self.useRaycasting = useRayCasting
         if useRayCasting:
-            self.hresolution = 10
-            self.vresolution = 10
+            self.hresolution = 20
+            self.vresolution = 20
             self.maxValue = 6
         else:
             self.hresolution = 84

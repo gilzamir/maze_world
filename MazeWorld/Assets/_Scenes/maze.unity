@@ -4793,7 +4793,7 @@ CapsuleCollider:
   m_Material: {fileID: 0}
   m_IsTrigger: 1
   m_Enabled: 1
-  m_Radius: 1.4
+  m_Radius: 2
   m_Height: 4
   m_Direction: 2
   m_Center: {x: 0.0000062956115, y: -0.1305142, z: 0.726882}
@@ -4837,8 +4837,8 @@ MonoBehaviour:
   remoteIPAddress: 127.0.0.1
   frameWidth: 84
   frameHeight: 84
-  rayCastingWidth: 10
-  rayCastingHeight: 10
+  rayCastingWidth: 20
+  rayCastingHeight: 20
   m_camera: {fileID: 2067570368}
 --- !u!82 &2143034215
 AudioSource:

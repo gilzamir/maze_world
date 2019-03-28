@@ -425,8 +425,8 @@ namespace bworld
         private static float energy;
 
 
-        private int verticalResolution = 10;
-        private int horizontalResolution = 10;
+        private int verticalResolution = 20;
+        private int horizontalResolution = 20;
         private bool useRaycast = true;
 
         private static Ray[,] raysMatrix = null;

@@ -13,12 +13,13 @@ import io
 import MazeWorld
 import datetime
 from goal_model import Tree, Node, get_next_goals, get_current_goal
+from mind import BrainFunction, BehavioralEngine, ReplayMemory, BehavioralRange, baredom_control, fn_linearbehavioralvalue, fn_constantbehavioralcontrol
 
 agent = Agent( (20, 20), 7, 15)
 agent.performer.front2back()
 
-agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/4000000)
-agent.epsilon_min = 0.10
+agent.epsilon_decay = ((agent.epsilon - agent.epsilon_min)/3000000)
+agent.epsilon_min = 0.1
 
 
 def pre_processing(observe):
@@ -35,9 +36,6 @@ RENDER = True
 REFRESH_MODEL_NUM = 20000
 N_RANDOM_STEPS = 50000
 
-REFRESH_MODEL_NUM2 = 10
-N_RANDOM_STEPS2 = 100
-
 MAX_EPSODES = 100000000
 NO_OP_STEPS = 30
 FRAME_SKIP = 4
@@ -51,7 +49,7 @@ log = open('log0.txt', 'w')
 logg = open('logg.txt', 'w')
 
 count_tests = 0
-
+replay_buffer = []
 for i in range(MAX_EPSODES):
     frame = env.reset()
 
@@ -72,7 +70,11 @@ for i in range(MAX_EPSODES):
     next_state = None
     initial_proprioception = np.array([0, 0, agent.baredom.min, agent.baredom.max, agent.baredom.current_value, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
    
-    
+    if agent.global_step > 5000000:
+       agent.epsilon_min = 0.05
+    elif agent.global_step > 7500000:
+        agent.epsilon_min = 0.01
+
     for _ in range(random.randint(1, NO_OP_STEPS)):
         action = random.sample(NOOP_ACTION,1)[0]
         frame, reward, _, info = env.step(action, FRAME_SKIP)
@@ -86,6 +88,7 @@ for i in range(MAX_EPSODES):
         agent.isWithKey = info['isWithKey']
         agent.energy = info['energy']
         orientation = info['orientation']
+        agent.orientation = orientation
         agent.touching_food = True if info['isPickUpNear'] else False
         initial_proprioception = [ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1), agent.baredom.min,
                                      agent.baredom.max, agent.baredom.current_value,  position[0], position[1],
@@ -93,13 +96,12 @@ for i in range(MAX_EPSODES):
     agent.reset()
     goals = get_next_goals(agent.tree_goals.root)
     selected_goal = get_current_goal(goals)
+    prev_selected_goal = selected_goal
     goals_mask = [0] * 6
     goals_mask[selected_goal] = 1.0
 
     initial_proprioception = np.array(initial_proprioception + goals_mask)
     
-
-
     if not env.useRaycasting:
         frame = pre_processing(frame)
 
@@ -132,12 +134,12 @@ for i in range(MAX_EPSODES):
         agent.last_reward = last_reward
         agent.last_frame = frame
         agent.touching_food = True if info['isPickUpNear'] else False
-
+        agent.orientation = orientation
         goals = get_next_goals(agent.tree_goals.root)
-        selected_goal = get_current_goal(goals)
+        goal_selected = get_current_goal(goals)
         
         goals_mask = [0] * 6
-        goals_mask[selected_goal] = 1.0
+        goals_mask[goal_selected] = 1.0
 
         next_proprioception = [ 1 if info['isPickUpNear'] else 0, np.clip(info['nearPickUpValue'], -1, 1), 
                                 agent.baredom.min, agent.baredom.max, agent.baredom_value] + list(position) + [orientation] + goals_mask
@@ -151,8 +153,7 @@ for i in range(MAX_EPSODES):
         next_state = np.reshape([next_frame], (1, 1, env.vresolution, env.hresolution))
         next_state = np.append(next_state, initial_state[:, :(FRAME_SKIP-1), :, :], axis=1)
 
-        
-        greward = agent.get_rewards()[selected_goal]
+        greward = agent.get_rewards()[goal_selected]
 
         agent.prev_dist_to_key = agent.get_dist_to_target()
         agent.prev_dist_to_gate = agent.get_dist_to_gate()
@@ -164,13 +165,31 @@ for i in range(MAX_EPSODES):
 
         count_tests += 1
  
+        if goal_selected in [0, 2, 4, 5]:
+            LEVEL_PROBABILITY = [0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        else:
+            LEVEL_PROBABILITY = [0.2, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.05, 0.05]
+
         end_eps = dead or is_done
 
-        agent.performer.remember( [initial_state, initial_proprioception], action, reward, [next_state, next_proprioception], end_eps)
+        size_rb = len(replay_buffer)
+        if end_eps or selected_goal != prev_selected_goal or len(replay_buffer) >= 10:
+            prev_r = 0
+            if size_rb > 0:
+                sample = replay_buffer.pop()
+                prev_r = sample[2] # 2 = reward
+                agent.performer.shared_memory[selected_goal].remember(sample[0], sample[1], sample[2], sample[3], prev_r)
+                while len(replay_buffer) > 0:
+                    sample = replay_buffer.pop()
+                    r = sample[2] + 0.99 * prev_r
+                    prev_r = r
+                    agent.performer.shared_memory[selected_goal].remember(sample[0], sample[1], sample[2], sample[3], prev_r)
+        else:
+            replay_buffer.append( ([initial_state, initial_proprioception], action, reward, [next_state, next_proprioception], end_eps) )
         
         if random.random() <= 0.005:
             print("EPISODE: %d. CURRENT GOAL %d. REWARDS: %f %f. EPSILON: %f. STEPS: %d. TOTAL STEPS: %d. AVG LOSS: %f. Baredom %f %f %f. WALK DIST %f. TARGET APPROX: %f." % (
-                i, selected_goal, sum_greward, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq, agent.get_walk_dist(), agent.get_dist_to_target()))
+                i, goal_selected, sum_greward, sum_reward, agent.epsilon, agent.step, agent.global_step, LOSS/agent.step, agent.baredom.min, agent.baredom.max, agent.baredom_freq, agent.get_walk_dist(), agent.get_dist_to_target()))
             print(goals)
         if (agent.global_step >= N_RANDOM_STEPS):
             LOSS += agent.performer.train(batch_size)
@@ -183,6 +202,7 @@ for i in range(MAX_EPSODES):
 
         if RENDER:
             env.render()
+        prev_selected_goal = selected_goal
 
     agent.prev_position = position
     if (agent.epoch % 1000 == 0):

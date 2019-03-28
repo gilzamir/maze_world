@@ -5,7 +5,7 @@ import numpy as np
 from collections import deque
 
 class Node:
-    def __init__(self, ID, parent=None, children=None, desc=None, condiction=lambda: True):
+    def __init__(self, ID, parent=None, children=None, desc=None, condiction=lambda: True, replay_memory=None):
         self.ID = ID
         if children:
             self.children = children
@@ -17,6 +17,7 @@ class Node:
         self.description = desc
         self.condiction = condiction
         self.counter = 0
+        self.replay_memory = replay_memory
 
     def __str__(self):
         return '%d' % self.ID

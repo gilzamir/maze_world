@@ -323,6 +323,7 @@ class BrainFunction:
         self.back_model.save_weights(name)
 
 class DQNAgent:
+
     def __init__(self, state_size, action_size, proprioception_size=2):
 
         if type(state_size) == tuple:
@@ -352,16 +353,21 @@ class DQNAgent:
         self.graph = tf.get_default_graph()
         self.session = keras.backend.get_session()
         self.nb_behavior = 1
+        self.KEY_CODE = 5
+        self.GATE_CODE = 4
 
         #No visual input information: touch, object value, min_var, max_var, var, x, y, z, angle, goal
         self.performer = BrainFunction(model_builder = self._build_model, input_size = 2,
                                     input_shapes=[(self.skip_frames, self.state_size[0], self.state_size[1]), (self.proprioception_size,)],
-                                    output_shape=[self.action_size])
+                                    output_shape=[self.action_size], mem_size=50000)
         
         self.tree_goals = Tree(Node(0, desc="put key on gate"))
-        self.tree_goals.create_node(3, self.tree_goals.create_node(1, self.tree_goals.root, desc="follow gate"), desc="get good food")
-        self.tree_goals.create_node(4, self.tree_goals.create_node(2, self.tree_goals.root, desc="get key"), desc="follow key")
-        
+        n1 = self.tree_goals.create_node(1, self.tree_goals.root, desc="follow gate", condiction=self.is_to_learning_follow_gate)
+        n2 =  self.tree_goals.create_node(2, self.tree_goals.root, desc="get key", condiction=self.is_to_learning_get_key)
+        n3 = self.tree_goals.create_node(3, n1, desc="get good food", condiction=self.is_to_learning_eating)
+        n4 = self.tree_goals.create_node(4, n2, desc="follow key", condiction=self.is_to_learning_follow_key)
+        n5 = self.tree_goals.create_node(5, n4, desc="search key", condiction=self.is_to_learning_search_key)
+
         self.baredom = BehavioralRange("baredom", self, 0.0, 0.1, 1.0, fn_control=baredom_control)
         self.last_action = -1
         self.prev_position = None
@@ -377,6 +383,24 @@ class DQNAgent:
         self.gate_position = np.array([262.65, -143.74, 305.13])
         self.MIN_TESTS = 10000
         self.fitness = np.zeros(5)
+        self.last_frame = None
+        self.touching_food = False
+        self.detected_target_counter = 0
+
+    def is_to_learning_follow_gate(self):
+        return self.get_dist_to_gate() > 5 and self.isWithKey
+
+    def is_to_learning_get_key(self):
+        return (self.get_dist_to_target() < 10) and (not self.is_to_learning_eating()) and (not self.isWithKey)
+    
+    def is_to_learning_follow_key(self):
+        return (self.KEY_CODE in self.last_frame and self.get_dist_to_target() > 10) and (not self.is_to_learning_eating()) and (not self.isWithKey)
+
+    def is_to_learning_search_key(self):
+        return (not self.KEY_CODE in self.last_frame) and (not self.is_to_learning_eating()) and (not self.isWithKey)
+
+    def is_to_learning_eating(self):
+        return self.touching_food
 
     def get_walk_dist(self):
         return abs(self.prev_position[0] - self.position[0])  + abs(self.prev_position[2] - self.position[2])
@@ -394,32 +418,36 @@ class DQNAgent:
         return np.clip(self.sum_of_rewards, -1.0, 1.0)
 
     def r_get_key(self): #2
-        return 1.0 if self.isWithKey else -1.0
+        if self.get_dist_to_target() < 5:
+            return 1.0 if self.isWithKey else -1.0
+        else:
+            return 0.0
 
     def r_target_follow(self): #4
-        if self.get_dist_to_target() < self.prev_dist_to_key:
+        dist = self.prev_dist_to_key - self.get_dist_to_target()
+        return np.clip(dist, -1.0, 1.0)
+
+    def r_search_key(self): #5
+        if self.KEY_CODE in self.last_frame:
             return 1
-        elif self.get_dist_to_target() > self.prev_dist_to_key:
-            return -1
         else:
-            return 0
+            return -1
 
     def r_gate_follow(self): #1
-        if self.get_dist_to_gate() < self.prev_dist_to_gate:
-            return 1
-        elif self.get_dist_to_gate() > self.prev_dist_to_gate:
-            return -1
-        else:
-            return 0
+        dist = self.prev_dist_to_gate - self.get_dist_to_gate()
+        return np.clip(dist, -1.0, 1.0)
 
     def r_homeostatic(self):
         return np.tanh(self.baredom_value)
 
     def get_rewards(self):
-        return np.array([self.r_get_score(), self.r_gate_follow(), self.r_get_key(), self.r_get_foods(), self.r_target_follow()])
+        return np.array([self.r_get_score(), self.r_gate_follow(), self.r_get_key(), self.r_get_foods(), self.r_target_follow(), self.r_search_key()])
 
-    def get_goal_status(self, IDX):
-        return self.fitness[IDX]/self.MIN_TESTS > 0.5
+    def get_goal_status(self, goals):
+        for goal in goals:
+            if self.fitness[goal.ID]/self.MIN_TESTS < 0.4:
+                return False
+        return True
 
     def reset(self, is_new_epoch=True):
         if is_new_epoch:
