@@ -114,12 +114,17 @@ class DQNAgent:
             return 0
 
     def r_search_key(self): #5
-        #td = self.calc_to_target_dir()
-        #dif = td - self.to_target_dir
         if self.KEY_CODE in self.last_frame:
-            return 1
+            td = self.calc_to_target_dir()
+            dif = td - self.to_target_dir
+            if dif > 0.0:
+                return 1.0
+            elif dif < 0.0:
+                return -1.0
+            else:
+                return 0.0
         else:
-            return -1
+            return -1.0
 
     def calc_to_target_dir(self):
         tv = self.target_position - self.position
